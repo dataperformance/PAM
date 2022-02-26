@@ -7,7 +7,7 @@ import sys
 
 
 class Participant:
-    def __init__(self, ID, covars, value):#sex, site, age_group):
+    def __init__(self, ID, covars, value):
         self.ID = ID
         self.aloc = "Not Assigned"
         #self.sex = sex
@@ -18,12 +18,6 @@ class Participant:
             i = 0
             self.covar[key] = value[i]
             i +=1
-        #self.covar = {"sex": sex, "site": site, "age_group": age_group}
-        #self.factors = {"sex": {"male": 0, "female": 1}, "site": {"1": 0, "2": 1},
-        #                "age_group": {"1": 0, "2": 1, "3": 2}}
-
-
-
         # input covars and stores it as factors, which is nested dictionary type with {variable:{level name: level index}}
         self.factors = {}
         for var, factors in covars.items():
@@ -33,6 +27,7 @@ class Participant:
                 self.factors[var][level]= i
                 i += 1
 
+        # covarIndex is key/value pairs, key is the variable name, value is the index of the level.
         self.covarIndex = {}
         for key, value in self.factors.items():
             temp = self.covar[key]
@@ -60,8 +55,6 @@ class Participant:
         return self.covar[Var_name]
 
     def __str__(self):
-        #return "ID: " + str(self.ID) + "/ sex: " + str(self.sex) + "/ site:" + str(self.site) \
-        #       + "/ age_group: " + str(self.age_group)
         return "undecided"
 
 
@@ -223,6 +216,7 @@ class Trial:
 
     # Description: block randomization with randomized block size,variation of block randomization
     # Return argument: seq (dimension x*y, x is the number of blocks, y is the random block size, each row is the assignments of a block)
+
     def randomized_block_randomization(self, random_block_size):
         # num_participant is the int type, the number of study subject (check num_participant % each element of random_block_size ==0 & num_participant >0,
         # num_participant is multiple of each element of random_block_size, and num_participant larger than 0)
@@ -248,11 +242,9 @@ class Trial:
         # initialize the vector of vectors seq(list in python)
         seq = []
 
-        # initialize the counter i
-        i = 0
+
 
         # loop until Num_Remaining_participant is larger than 0
-
         while num_remaining_participant > 0:
             # if Num_Remaining_participant is equal to smallest element of random_block_size,
             # assigned the last block_size as the Num_Remaining_participant
@@ -261,6 +253,7 @@ class Trial:
                 # seq append the vector of string with length of block_size
                 seq.append(self.block_seq(num_group, block_size, group_name))
                 break
+            #else,
             else:
                 # block_size is randomly choose from random_block_size
                 block_size = rd.choice(random_block_size)
@@ -269,9 +262,10 @@ class Trial:
                 # seq append the vector of string with length of block_size
                 seq.append(self.block_seq(num_group, block_size, group_name))
 
+                #update number of remaining participant that needs to be assigned
                 num_remaining_participant = num_remaining_participant - block_size
 
-                i += 1
+
         return seq
 
     # Description: perform minimization allocation
@@ -287,9 +281,12 @@ class Trial:
         # group_scores is nested key/value pair with two layers, first layer’s key is the group_names, and the value is the covariables of the group;
         # the second layer’s key is the covariable names, and its value is vector of int, which store the scores.
         group_scores = {i: {j: len(self.factors.get(j)) * [0] for j in self.factors} for i in self.group_name}
-        group_scores = pd.DataFrame(group_scores)  # better visulization
-        #
+        #group_scores = pd.DataFrame(group_scores)  # better visulization
+
+
+        #intialize allocation
         allocation = [[] for i in range(num_group)]
+
         #
         collection_participants = self.getParticipants()
 
