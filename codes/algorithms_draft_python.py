@@ -7,17 +7,16 @@ import sys
 
 
 class Participant:
-    def __init__(self, ID, covars, value):
+    def __init__(self, ID, covars, factor):
         self.ID = ID
         self.aloc = "Not Assigned"
-        #self.sex = sex
-        #self.site = site
-        #self.age_group = age_group
         self.covar = {}
+        #Initiate the paticipant covariables as a dictionary
+        i = 0
         for key,value in covars.items():
-            i = 0
-            self.covar[key] = value[i]
+            self.covar[key] = value[factor[i]]
             i +=1
+
         # input covars and stores it as factors, which is nested dictionary type with {variable:{level name: level index}}
         self.factors = {}
         for var, factors in covars.items():
@@ -57,7 +56,6 @@ class Participant:
     def __str__(self):
         return "undecided"
 
-
 class Trial:
     def __init__(self, Trial_name, group_name, covars):
         self.Trial_name = Trial_name
@@ -65,6 +63,7 @@ class Trial:
 
 
         levels = []
+        #the value of the trail dataframe
         vars = []
         for key, value in covars.items():
             levels.append(len(value))
@@ -103,6 +102,7 @@ class Trial:
 
     def addParticipant(self, par):
         self.pars.append(par)
+        par.covar["ID"] = int(par.getID())
         self.df = self.df.append(par.covar, ignore_index=True)
 
     def getParticipants(self):
@@ -120,10 +120,10 @@ class Trial:
     def getDataframe(self):
         return self.df
 
-    def stratify(self):
-        grouped_df = self.df.groupby(self.factors)
-        for key, item in grouped_df:
-            print(grouped_df.get_group(key), "\n\n")
+    def print_dataframe(self):
+        return print(self.df)
+
+
 
     # Description: perform simple random allocation
     # Return arguments include seq(vector of group name, vector length equals to num_participant) and seed
@@ -326,9 +326,24 @@ class Trial:
         return allocation, group_scores
 
 
+
+    # Description: stratify the trail subjects into strutms
+    # Input argument: the list of string of the variable names that are used to stratify the dataframe
+    # Return_argument: individual statums
+
+    def stratify(self, covars):
+        #check if covars in the actual dataframe
+        self_var_name = [i for i in self.factors.keys().__iter__()]
+        for v in covars:
+            assert v in self_var_name
+
+        result= []
+        grouped_df = self.df.groupby(covars)
+        for key, item in grouped_df:
+            result.append(grouped_df.get_group(key))
+        return result
 # Decription:helper function for allocate a single participant according to the group_scores
 # Return arguments: the group_id, group_name_alloc, group_scores for allocating a participant by the minimization algorithm.
-
 
 def minimize(Participant_covarsIndex, group_scores, group_names):
     scores_total = []
@@ -371,22 +386,29 @@ def minimize(Participant_covarsIndex, group_scores, group_names):
 
 
 
+
+
+
+
+
+
 covars = {'sex': ["male","female"], "site": ["1","2"],"age_group": ["1","2","3"]}#, "Test1": ["T", "F"]}
-x = Trial("test", group_name=["A", "B"], covars = covars)
+x = Trial("test", group_name=["A", "B", "C", "D", "E"], covars = covars)
 
-par1 = Participant(ID=1,covars= covars, value = [0,1,1])
-par2 = Participant(ID=2,covars= covars, value = [1,1,1])
-par3 = Participant(ID=3,covars= covars, value = [0,0,0])
-#par4 = Participant(ID=4,covars= covars, value = [0,0,0,0])
-#par5 = Participant(ID=1,covars= covars, value = [0,0,0,1])
-#par6 = Participant(ID=2,covars= covars, value = [0,0,0,0])
-#par7 = Participant(ID=3,covars= covars, value = [0,0,0,0])
-#par8 = Participant(ID=4,covars= covars, value = [0,0,0,1])
-#par9 = Participant(ID=4,covars= covars, value = [0,0,0,1])
+#par1 = Participant(ID=1,covars= covars, factor = [0,1,1])
+#par2 = Participant(ID=2,covars= covars, factor = [1,1,1])
+#par3 = Participant(ID=3,covars= covars, factor = [0,0,0])
+#par4 = Participant(ID=4,covars= covars, factor = [0,1,2])
+#par5 = Participant(ID=5,covars= covars, factor = [0,0,1])
+#par6 = Participant(ID=6,covars= covars, factor = [1,0,2])
+#par7 = Participant(ID=3,covars= covars, factor = [0,0,0,0])
+#par8 = Participant(ID=4,covars= covars, factor = [0,0,0,1])
+#par9 = Participant(ID=4,covars= covars, factor = [0,0,0,1])
 
-x.addParticipant(par1)
-x.addParticipant(par2)
-x.addParticipant(par3)
+
+#x.addParticipant(par1)
+#x.addParticipant(par2)
+#x.addParticipant(par3)
 #x.addParticipant(par4)
 #x.addParticipant(par5)
 #x.addParticipant(par6)
@@ -394,23 +416,33 @@ x.addParticipant(par3)
 #x.addParticipant(par8)
 #x.addParticipant(par9)
 
-print(x.simple_rand())
-#print("block randomization: ", x.block_randomization(3))
+
+
+#test 500 participants:
+print("generating random test case")
+for i in range(500):
+    factor = [rd.randint(0,1), rd.randint(0,1), rd.randint(0,2)]
+    p = Participant(ID=i,covars=covars, factor=factor)
+    x.addParticipant(p)
+print("finish adding")
+
+
+#print(x.simple_rand())
+#print("block randomization: ", x.block_randomization(5))
 #print("randomized block randomization: ", x.randomized_block_randomization([3, 3]))
 allocation, scores = x.minimization()
-print("minimization allocation: ", allocation)
+#print("minimization allocation: ", allocation)
 
 #print(scores)
 
-# test
 
-# 3 groups
-##y = Trial("test2", group_name=["A", "B", "C"])
-##sex = ['male', 'female']
-##site = ['1', '2']
-##age_group = ['1', '2', '3']
-##
-##for i in range(1, 601):
-##    par = Participant(ID=i, sex=rd.choice(sex), site=rd.choice(site), age_group=rd.choice(age_group))
-##    y.addParticipant(par)
 
+
+test = x.stratify(covars=["sex", "site", "age_group"])
+
+
+
+
+
+
+print("end")
