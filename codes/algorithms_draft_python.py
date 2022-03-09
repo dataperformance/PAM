@@ -123,23 +123,29 @@ class Trial:
     def print_dataframe(self):
         return print(self.df)
 
+####Simple Randomization:####
 
-
+    # The algorithm is from < (Lin, Zhu, & Su, 2015)>
     # Description: perform simple random allocation
     # Return arguments include seq(vector of group name, vector length equals to num_participant) and seed
     def simple_rand(self, seed=None, ratio_group=None):
         # num_participant is the int type, the number of study subject
         num_participant = self.getParticipantNum()
-        # group_name  is the vector of string type, the name of study groups(check length of group_name>= 2 & equal to the length of ratio_group)
+        # group_name  is the vector of string type,
+        #the name of study groups(check length of group_name>= 2 & equal to the length of ratio_group)
         group_name = self.group_name
+
+        #num_group is the int type,
+        #equal to the number of distinctive groups
         num_group = len(group_name)
-        assert num_group >= 2
+        assert num_group >= 2  # number of groups should larger than 2
 
         # seed is random integer for the randomized function
         # if not assign seed, automatic assign seed to sys.maxsize
         if (seed == None):
             seed = rd.randrange(sys.maxsize)
             rd.Random(seed)
+        # if seed is assigned, set seed to the assigned value
         rd.Random(seed)
 
         # ratio_group is a vector of the ratio, default ratio_group = vector(1/(num_group), length of num_group),
@@ -159,11 +165,16 @@ class Trial:
         # return a tuple
         return seq, seed
 
+####Block Randomization:####
+
+    # The algorithm is from < (Broglio, 2018), (Lim & In, 2005)>
     # Description: perform block random allocation
     # Return argument: seq (dimension x*y, x is the number of blocks, y is the block size, each row is the assignments of a block)
     def block_randomization(self, block_size):
+
         # group_name is the vector of string type, the name of study groups
         group_name = self.group_name
+
         # block_size is the int type, the number of participants in each block(check block_size >= 2 & block_size% length of group_name==0
         # , each block size>= 2 and is a multiple of number of group)
         assert block_size >= 2, "block size should larger than 2"
@@ -190,6 +201,7 @@ class Trial:
 
         return seq
 
+
     # Description: helper function to generate allocations within a block
     # Return argument is the assigned_block(the vector of group name, vector length equal to block_size)
     def block_seq(self, num_group, block_size, group_name):
@@ -201,6 +213,8 @@ class Trial:
 
         # initialize the vector assigned_block(list in python)
         assigned_block = []
+
+        #For each element in the block, assign group
         for i in range(block_size):
             # assign is the randomly selected element from the scheduler
             assign = rd.choice(schedule_group)
@@ -214,6 +228,9 @@ class Trial:
             # remove() is a built-in function, removed elements of a vector
         return assigned_block
 
+
+
+    # The algorithm is from < (Lim & In, 2005)>
     # Description: block randomization with randomized block size,variation of block randomization
     # Return argument: seq (dimension x*y, x is the number of blocks, y is the random block size, each row is the assignments of a block)
 
@@ -242,8 +259,6 @@ class Trial:
         # initialize the vector of vectors seq(list in python)
         seq = []
 
-
-
         # loop until Num_Remaining_participant is larger than 0
         while num_remaining_participant > 0:
             # if Num_Remaining_participant is equal to smallest element of random_block_size,
@@ -253,7 +268,7 @@ class Trial:
                 # seq append the vector of string with length of block_size
                 seq.append(self.block_seq(num_group, block_size, group_name))
                 break
-            #else,
+            #else
             else:
                 # block_size is randomly choose from random_block_size
                 block_size = rd.choice(random_block_size)
@@ -265,34 +280,45 @@ class Trial:
                 #update number of remaining participant that needs to be assigned
                 num_remaining_participant = num_remaining_participant - block_size
 
-
         return seq
 
+
+
+
+
+####Minimization:####
+    # The algorithm is from < (Lim & In, 2005), (Scott, McPherson, Ramsay, & Campbell, 2002)>
     # Description: perform minimization allocation
-    # Return arguments includes allocations(vectors of group allocation for each group, element of the vectors is the participant ID number), group_scores(nested key/value pair to represent the imbalance scores)
+    # Return arguments includes allocations(vectors of group allocation for each group,
+    # -element of the vectors is the participant ID number), group_scores(nested key/value pair to represent the imbalance scores)
 
     def minimization(self):
 
         # group_name is a list,
         # the name of study groups(check length of group_name>= 2 & equal to the length of ratio_group)
         group_names = self.group_name
+
         # num_group is the unique number of the study groups
         num_group = len(group_names)
-        # group_scores is nested key/value pair with two layers, first layer’s key is the group_names, and the value is the covariables of the group;
+
+        # group_scores is nested key/value pair with two layers,
+        # first layer’s key is the group_names, and the value is the covariables of the group;
         # the second layer’s key is the covariable names, and its value is vector of int, which store the scores.
         group_scores = {i: {j: len(self.factors.get(j)) * [0] for j in self.factors} for i in self.group_name}
+
         #group_scores = pd.DataFrame(group_scores)  # better visulization
 
 
-        #intialize allocation
+        # intialize allocation
         allocation = [[] for i in range(num_group)]
 
-        #
+        # collection_participants is a list of the participant in the trail
         collection_participants = self.getParticipants()
 
-        #
+        # first_participant is the first paticipant to be allocated
         first_participant = collection_participants[0]
-        # updata collection_participants
+
+        # update collection_participants
         collection_participants = collection_participants[1:]
 
         # first case, randomly allocate first participant
@@ -317,39 +343,48 @@ class Trial:
             # call the minimize function to
             group_id, group_name_assigned, group_scores_update = \
                 minimize(participant.getCovarsIndex(), group_scores, group_names)
-            # updata group_scores by re-reference the group_socres
+            # update group_scores by re-reference the group_socres
             group_scores = group_scores_update
 
-            #
+            # update the allocation result
             allocation[group_id].append(participant.getID())
 
         return allocation, group_scores
 
+###Stratification###
 
-
-    # Description: stratify the trail subjects into strutms
+    # Description: stratify the all the participant into stratum by covariables
     # Input argument: the list of string of the variable names that are used to stratify the dataframe
-    # Return_argument: individual statums
-
+    # Return_argument: list of individual stratum, which each element of the list is a pandas Dataframe
     def stratify(self, covars):
-        #check if covars in the actual dataframe
+        #check if covars in the actual dataset
         self_var_name = [i for i in self.factors.keys().__iter__()]
         for v in covars:
             assert v in self_var_name
-
-        result= []
+        #initilize the result
+        result = []
         grouped_df = self.df.groupby(covars)
         for key, item in grouped_df:
             result.append(grouped_df.get_group(key))
+
         return result
+
+
+
 # Decription:helper function for allocate a single participant according to the group_scores
 # Return arguments: the group_id, group_name_alloc, group_scores for allocating a participant by the minimization algorithm.
 
 def minimize(Participant_covarsIndex, group_scores, group_names):
+
+    #initilize the scores_total,
+    #scores_total is a list int,
+    # which each element is the imbalance scores of that group
     scores_total = []
 
+    #make a deep copy of previous group scores
     group_scores_update = group_scores.copy()
-    # for each group, calculate the mariginal socres
+
+    # for each group, calculate the marginal scores(for each group)
     for group_name in group_scores_update:
         # locate group_name index
         group_name_index = group_names.index(group_name)
@@ -358,26 +393,31 @@ def minimize(Participant_covarsIndex, group_scores, group_names):
         for key, value in Participant_covarsIndex.items():
             # find imbalance score for if assigned
             score = score + group_scores_update[group_name][key][value] + 1
-
+        #update the scores_total
         scores_total.append(score)
-
-    # print(scores_total)
 
     # return min group imbalance index
     min_imbalance = min(scores_total)
-    # retrun all min_groups' index
+    # return all min_groups' index
     min_groups_index = [i for i, x in enumerate(scores_total) if x == min_imbalance]
     # randomly choose a min imbalance group if multiple min imbalance, otherwise return min
     group_id = rd.choice(min_groups_index)  # break tier when multiple min occur
     # update the allocate group name
     group_name_alloc = group_names[group_id]
 
-    # updata scores
-    # group_scores = group_scores[group_id]
+    # update scores and return
     for key, value in Participant_covarsIndex.items():
         group_scores_update[group_name_alloc][key][value] += 1
 
     return group_id, group_name_alloc, group_scores_update
+
+
+
+
+
+
+
+
 
 
 # simple illustration
@@ -395,28 +435,6 @@ def minimize(Participant_covarsIndex, group_scores, group_names):
 covars = {'sex': ["male","female"], "site": ["1","2"],"age_group": ["1","2","3"]}#, "Test1": ["T", "F"]}
 x = Trial("test", group_name=["A", "B", "C", "D", "E"], covars = covars)
 
-#par1 = Participant(ID=1,covars= covars, factor = [0,1,1])
-#par2 = Participant(ID=2,covars= covars, factor = [1,1,1])
-#par3 = Participant(ID=3,covars= covars, factor = [0,0,0])
-#par4 = Participant(ID=4,covars= covars, factor = [0,1,2])
-#par5 = Participant(ID=5,covars= covars, factor = [0,0,1])
-#par6 = Participant(ID=6,covars= covars, factor = [1,0,2])
-#par7 = Participant(ID=3,covars= covars, factor = [0,0,0,0])
-#par8 = Participant(ID=4,covars= covars, factor = [0,0,0,1])
-#par9 = Participant(ID=4,covars= covars, factor = [0,0,0,1])
-
-
-#x.addParticipant(par1)
-#x.addParticipant(par2)
-#x.addParticipant(par3)
-#x.addParticipant(par4)
-#x.addParticipant(par5)
-#x.addParticipant(par6)
-#x.addParticipant(par7)
-#x.addParticipant(par8)
-#x.addParticipant(par9)
-
-
 
 #test 500 participants:
 print("generating random test case")
@@ -432,14 +450,13 @@ print("finish adding")
 #print("randomized block randomization: ", x.randomized_block_randomization([3, 3]))
 allocation, scores = x.minimization()
 #print("minimization allocation: ", allocation)
-
 #print(scores)
 
 
 
 
 test = x.stratify(covars=["sex", "site", "age_group"])
-
+print("number of total stratum is", len(test))
 
 
 
