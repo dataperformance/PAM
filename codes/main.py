@@ -5,7 +5,7 @@ import random as rd
 import timeit
 
 
-'''     An setup example, assume we have the 500 participant, and they have 3 categorical variables, 
+'''     An example, assume we have the 500 participant, and they have 3 categorical variables, 
         SEX(male,female), SITE(1 or 2 ), AGE GROUP(1,2,3), and assign them into 5 different arms
 '''
 
