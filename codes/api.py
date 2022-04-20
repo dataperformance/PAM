@@ -14,7 +14,7 @@ from database.models import Team,Study, Study_SimpleRand,Study_BlockRand,Block
 
 
 
-sys.path.append(r'/Users/David/Desktop/Research/git/SAM/codes/Alloc_Algorithm')
+#sys.path.append(r'/Users/David/Desktop/Research/git/SAM/codes/Alloc_Algorithm')
 
 app = Flask(__name__)
 
