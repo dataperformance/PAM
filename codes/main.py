@@ -3,6 +3,8 @@ from Alloc_Algorithm import Participant as Participant
 from Alloc_Algorithm import Strat_Trial as Strat_Trial
 import random as rd
 import timeit
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 '''     An example, assume we have the 500 participant, and they have 3 categorical variables, 
@@ -15,6 +17,7 @@ variables = {'sex': ["male","female"], "site": ["1","2"],"age_group": ["1","2","
 
 #initilize the trial, which has the input of trial name, arm names for the trial, and the variables for the trial
 group_names = ["A", "B", "C", "D", "E"]
+
 Trial_test_500 = Trial("test", group_name=group_names, covars = variables)
 
 
@@ -23,9 +26,14 @@ start = timeit.default_timer()
 print("generating random 500 participants")
 for i in range(500):
     #randomly assigned the participant value, which is the index of the variables
-    factor = [rd.randint(0,1), rd.randint(0,1), rd.randint(0,2)]
+    covarIndex = {
+        'sex': rd.randint(0,1),
+        "site": rd.randint(0,1),
+        "age_group":rd.randint(0,1)
+    }
+
     #genearte one participant object, input participant ID, variables, and its index value
-    p = Participant(ID=i,covars=variables, factor=factor)
+    p = Participant(ID=i,covars=variables, covarIndex=covarIndex)
     #add the participant to the trial we initialized at the beganing
     Trial_test_500.addParticipant(p)
 print("finish adding")
@@ -100,7 +108,12 @@ print("The total time for Minimization 500 participants is: ", round(elapsed,5),
 
 #Add and allocation a new participant to the existed trail base on the minimization scheme
 start = timeit.default_timer()
-participant_new = Participant(ID=500, covars=variables, factor=[1,1,1])
+covarIndex = {
+        'sex': 1,
+        "site": 1,
+        "age_group":1
+    }
+participant_new = Participant(ID=500, covars=variables, covarIndex=covarIndex)
 Trial_test_500.minimize_and_AddParticipant(participant_new)
 elapsed = (timeit.default_timer() - start)
 print("The time for Minimize a participant is: ", round(elapsed,5), "seconds")
@@ -136,9 +149,13 @@ for num in nums_participant:
     start = timeit.default_timer()
     for i in range(num):
         #randomly assigned the participant value, which is the index of the variables
-        factor = [rd.randint(0,1), rd.randint(0,1), rd.randint(0,2)]
+        covarIndex = {
+            'sex': rd.randint(0, 1),
+            "site": rd.randint(0, 1),
+            "age_group": rd.randint(0, 2)
+        }
         #genearte one participant object, input participant ID, variables, and its index value
-        p = Participant(ID=i,covars=variables, factor=factor)
+        p = Participant(ID=i,covars=variables, covarIndex=covarIndex)
         #add the participant to the trial we initialized at the beganing
         Trial_test_time.addParticipant(p)
     print("Done generating")

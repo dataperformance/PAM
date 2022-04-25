@@ -77,6 +77,7 @@ def randomized_block_randomization(num_participant,group_name,random_block_size)
     # (check each int element in random_block_size is a multiple of num_group)
     for n in random_block_size:
         assert n > 1, "random block size should larger than 1"
+        assert n >= len(group_name), "each block size should larger or equal to the size of group"
         assert num_participant % n == 0, "num_participant should be multiple of each element of random_block_size"
 
     # group_name is the vector of string type, the name of study groups (check length of group_name>= 2)

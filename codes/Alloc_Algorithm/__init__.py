@@ -10,18 +10,32 @@ from ._Stratify import stratify
 
 
 class Participant:
-    def __init__(self, ID, covars, factor):
+    """ID can be string(name of participant)
+
+    ###covars should be the dictionary.###
+    e.g.
+        {'sex': ["male","female"], "site": ["1","2"],"age_group": ["1","2","3"]}
+
+    ###covarIndex should be the dictionary that its value is index(int) map the value in covars###
+    e.g.
+        {'sex': 0, "site": 1,"age_group": 1}   ===> "male", "site 1", "age_group 2"
+
+    """
+    def __init__(self, ID, covars, covarIndex):
         #ID have to be unique
         self.ID = ID
         self.aloc = "Not Assigned"
+        self.covarIndex = covarIndex
         self.covar = {}
-        #Initiate the paticipant covarss as a dictionary
-        i = 0
+        #Initiate the paticipant covars as a dictionary
         for key,value in covars.items():
-            self.covar[key] = value[factor[i]]
-            i +=1
+            index_value = covarIndex[key]
+            string_value = value[index_value]
+            self.covar[key] = string_value
 
-        # input covars and stores it as factors, which is nested dictionary type with {covars:{level name: level index}}
+
+        # factors, which is nested dictionary type with {covars:{level name: level index}}
+        """e.g. {'sex': {'male': 0, 'female': 1}, 'site': {'1': 0, '2': 1}, 'age_group': {'1': 0, '2': 1, '3': 2}}"""
         self.factors = {}
         for var, factors in covars.items():
             i = 0
@@ -29,12 +43,6 @@ class Participant:
             for level in factors:
                 self.factors[var][level]= i
                 i += 1
-
-        # covarIndex is key/value pairs, key is the covars name, value is the index of the level.
-        self.covarIndex = {}
-        for key, value in self.factors.items():
-            temp = self.covar[key]
-            self.covarIndex[key] = self.factors[key][temp]
 
     def setID(self, ID):
         self.ID = ID
@@ -61,6 +69,13 @@ class Participant:
         return "undecided"
 
 class Trial:
+    """
+    Trial_name: name of trail
+    group_name: list of group name
+    covars: level of columns and column name
+        e.g. {'sex': ["male","female"], "site": ["1","2"],"age_group": ["1","2","3"]}
+    """
+
     def __init__(self, Trial_name, group_name, covars):
         self.Trial_name = Trial_name
         self.pars = []
@@ -101,7 +116,7 @@ class Trial:
 
     def addParticipant(self, par):
         self.pars.append(par)
-        par.covar["ID"] = int(par.getID())
+        par.covar["ID"] = par.getID()
         self.df = self.df.append(par.covar, ignore_index=True)
 
     def getParticipants(self):
