@@ -30,10 +30,11 @@ def get_team(teamId):
         return Response(team.to_json(), mimetype="application/json", status=200)
 
     teams_objs = Team.objects().all()
-    teams = json.loads(teams_objs.to_json())
+    teams = []
     #delete the oid from view
-    for team in teams:
-        del team['_id']
+    for team_obj in teams_objs:
+        team = json.loads(team_obj.to_json())
+        teams.append(team)
 
     view = {'allteams':teams}
     return jsonify(view), 200

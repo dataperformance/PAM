@@ -28,7 +28,13 @@ app.register_blueprint(team)
 app.register_blueprint(study)
 app.register_blueprint(participant)
 
-app.config['MONGODB_SETTINGS'] = {'host': 'mongodb://localhost/test_db'}
+#app.config['MONGODB_SETTINGS'] = {'host': 'mongodb://localhost/test_db'}
+
+
+app.config["MONGODB_SETTINGS"] = {'host': "mongodb+srv://davidyin:i9rbUEVAo2rqonq9@cluster0.46hxy.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"}
+#secrets.token_hex(20)
+app.config["SECRET_KEY"] = '24e7f1128e12e49122c6eed23211ffb51311650f'
+
 initialize_db(app)
 
 avaliable_allocTypes = {

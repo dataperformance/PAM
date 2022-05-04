@@ -188,7 +188,7 @@ class Team(db.Document):
         studies = []
         for study in self.studies:
             studies.append({"studyId": str(study.studyId),
-                            "allocType": str(study.allocType),})
+                            "allocType": str(study.allocType)})
             # "allocatedStatus" : str(study.allocated)})
         return studies
 
