@@ -101,8 +101,11 @@ def update_team(teamId):
 @team.route('/api/1.0.0/team/<teamId>', methods=['DELETE'])
 def delete_team(teamId):
     """
+    delete a team and its all studies
     :param teamId: the UUID of a team that need to be deleted
     :return: confirmation of deletion
     """
+
+    Team.objects.get(teamId=teamId).delete_all_studies()
     Team.objects.get(teamId=teamId).delete()
     return jsonify("delete success", 200)

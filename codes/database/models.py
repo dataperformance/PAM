@@ -181,6 +181,12 @@ class Team(db.Document):
     # studies of the team
     studies = ListField(ReferenceField(Study, reverse_delete_rule=mongoengine.PULL, dbref=True))
 
+    def delete_all_studies(self):
+        for study in self.studies:
+            study.delete()
+
+        return
+
     def get_id(self):
         return str(self.pk)
 
@@ -191,6 +197,7 @@ class Team(db.Document):
                             "allocType": str(study.allocType)})
             # "allocatedStatus" : str(study.allocated)})
         return studies
+
 
     def to_json(self):
         data = self.to_mongo()
