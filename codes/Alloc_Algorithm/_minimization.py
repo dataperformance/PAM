@@ -7,8 +7,13 @@ import random as rd
     -element of the vectors is the participant ID number), group_scores(nested key/value pair to represent the imbalance scores)
 '''
 
-def minimization(self):
 
+def minimization(self):
+    """
+
+    :param self:
+    :return: allocation{groupNames: participantId},group_scores
+    """
     # group_name is a list,
     # the name of study groups(check length of group_name>= 2 & equal to the length of ratio_group)
     group_names = self.group_name
@@ -21,15 +26,13 @@ def minimization(self):
     # the second layer’s key is the covariable names, and its value is vector of int, which store the scores.
     group_scores = {i: {j: len(self.factors.get(j)) * [0] for j in self.factors} for i in self.group_name}
 
-    #group_scores = pd.DataFrame(group_scores)  # better visulization
+    # group_scores = pd.DataFrame(group_scores)  # better visulization
 
-
-    # intialize allocation
-    allocation = [[] for i in range(num_group)]
+    # intialize allocation(dictionary)
+    allocation = {group_names[i]: [] for i in range(num_group)}
 
     # collection_participants is a list of the participant in the trail
     collection_participants = self.getParticipants()
-
 
     # first_participant is the first paticipant to be allocated
     first_participant = collection_participants[0]
@@ -44,7 +47,7 @@ def minimization(self):
     group_name = group_names[group_id]
 
     # updata allocation
-    allocation[group_id].append(first_participant.getID())
+    allocation[group_name].append(first_participant.getID())
     # first_participant.setAloc(group_name)
 
     # updata group_scores
@@ -63,23 +66,23 @@ def minimization(self):
         group_scores = group_scores_update
 
         # update the allocation result
-        allocation[group_id].append(participant.getID())
+        allocation[group_name].append(participant.getID())
 
     return allocation, group_scores
-
 
 
 ''' Description: helper function for allocating a single participant according to the group_scores,
     Return arguments: the group_id, group_name_alloc, group_scores for allocating a participant by the minimization algorithm.
 '''
-def minimize(Participant_covarsIndex, group_scores, group_names):
 
-    #initilize the scores_total,
-    #scores_total is a list int,
+
+def minimize(Participant_covarsIndex, group_scores, group_names):
+    # initilize the scores_total,
+    # scores_total is a list int,
     # which each element is the imbalance scores of that group
     scores_total = []
 
-    #make a deep copy of previous group scores
+    # make a deep copy of previous group scores
     group_scores_update = group_scores.copy()
 
     # for each group, calculate the marginal scores(for each group)
@@ -91,7 +94,7 @@ def minimize(Participant_covarsIndex, group_scores, group_names):
         for key, value in Participant_covarsIndex.items():
             # find imbalance score for if assigned
             score = score + group_scores_update[group_name][key][value] + 1
-        #update the scores_total
+        # update the scores_total
         scores_total.append(score)
 
     # return min group imbalance index

@@ -76,11 +76,11 @@ class Trial:
         e.g. {'sex': ["male","female"], "site": ["1","2"],"age_group": ["1","2","3"]}
     """
 
-    def __init__(self, Trial_name, group_name, covars):
+    def __init__(self, Trial_name, group_name, covars, groupScore=None):
         self.Trial_name = Trial_name
         self.pars = []
         self.allocation = []
-        self.__groupScore = None
+        self.__groupScore = groupScore
 
         #levels = []
         #the value of the trail dataframe
@@ -156,6 +156,9 @@ class Trial:
     def viewGroupScore(self):
         return print(self.__groupScore)
 
+    def getGroupScore(self):
+        return self.__groupScore
+
     ###simple randomization###
     #option1:generate the simple randomization by providing the number of participant and names of arm
     def simple_rand(num_participant,group_name, seed=None, ratio_group=None):
@@ -195,10 +198,14 @@ class Trial:
     ##!require object trial
     #return the index of
     def minimization_trial(self):
+        """
+
+        :return: allocation, group_scores
+        """
         allocation, group_scores = MZ(self)
         self.setAllocation(allocation)
         self.updateGroupScore(group_scores)
-        return allocation
+        return allocation, group_scores
 
     #input a participant object
     #return the allocation group for that participant
