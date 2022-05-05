@@ -1,18 +1,20 @@
 from flask import Blueprint, Response, request, jsonify
 from database.db import initialize_db
-from database.models import Team, Study, Study_SimpleRand, \
-    Study_BlockRand, Study_Block, Study_Minimization, Study_Covariables, Study_Participant, Study_RandBlockRand
+from database.models import Study_Minimization, Study_Participant, User
 import uuid
 # import algorithms
 from Alloc_Algorithm._blockRand import block_randomization
 from Alloc_Algorithm._simpleRand import simple_rand
 from Alloc_Algorithm._blockRand import randomized_block_randomization
 from Alloc_Algorithm import Trial, Participant
+# auth
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 participant = Blueprint('participant', __name__)
 
 
 @participant.route('/api/1.0.0/study/<studyId>/minimizeParticipant', methods=['POST'])
+@jwt_required()
 def add_participant(studyId):
     """
     insert a participant to the minimization study
@@ -20,6 +22,10 @@ def add_participant(studyId):
     :param studyId: the id of the minimization study
     :return: the participant covars and its ID
     """
+
+    """auth part"""
+    userId = get_jwt_identity()  # the user uuid
+    user = User.objects.get_or_404(userId=userId)  # find the user obj
 
     """Participant info section"""
     # get the information
@@ -31,7 +37,7 @@ def add_participant(studyId):
 
     """minimization study info section"""
     # get the study
-    study = Study_Minimization.objects(studyId=studyId).get_or_404()
+    study = Study_Minimization.objects(studyId=studyId, add_by_user=user).get_or_404()
     # covars of the study
     studyCovars = study.covars.field_name
     # groupScores of the study
@@ -55,8 +61,10 @@ def add_participant(studyId):
     # create and save participant object
     # autogenerate uuid
     participantUUID = uuid.uuid4()
-    participant_created = Study_Participant(PID=PID, participantId=participantUUID,
-                                            participantCovarsIndex=participantCovarsIndex).save()
+    participant_created = Study_Participant(PID=PID,
+                                            participantId=participantUUID,
+                                            participantCovarsIndex=participantCovarsIndex,
+                                            add_by_user=user).save()
 
     # push the participant to the minimize study
     study.participants.append(participant_created)
@@ -106,6 +114,11 @@ def add_participant(studyId):
 
 
 @participant.route('/api/1.0.0/minimizeParticipant/<participantId>', methods=['DELETE'])
+@jwt_required()
 def delete_participant(participantId):
-    Study_Participant.objects.get(participantId=participantId).delete()
+    """auth part"""
+    userId = get_jwt_identity()  # the user uuid
+    user = User.objects.get_or_404(userId=userId)  # find the user obj
+
+    Study_Participant.objects.get(participantId=participantId,add_by_user = user).delete()
     return jsonify("delete success", 200)

@@ -1,13 +1,14 @@
 from flask import Blueprint, Response, request, jsonify
 from database.db import initialize_db
 from database.models import Team, Study, Study_SimpleRand, \
-    Study_BlockRand, Study_Block, Study_Minimization, Study_Covariables, Study_Participant, Study_RandBlockRand
+    Study_BlockRand, Study_Block, Study_Minimization, Study_Covariables, Study_Participant, Study_RandBlockRand, User
 import uuid
 # import algorithms
 from Alloc_Algorithm._blockRand import block_randomization
 from Alloc_Algorithm._simpleRand import simple_rand
 from Alloc_Algorithm._blockRand import randomized_block_randomization
 from Alloc_Algorithm import Trial, Participant
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 study = Blueprint('study', __name__)
 
@@ -22,6 +23,7 @@ available_allocTypes = {
 
 ###creating study by allocation type###
 @study.route('/api/1.0.0/team/<teamId>/study', methods=['POST'])
+@jwt_required()
 def create_study(teamId):
     """
 
@@ -31,6 +33,10 @@ def create_study(teamId):
 
 
     """
+    """auth part"""
+    userId = get_jwt_identity()  # the user uuid
+    user = User.objects.get_or_404(userId=userId)  # find the user obj
+
     # get the information
     studyData = request.get_json()
     """allocation type validation"""
@@ -42,8 +48,11 @@ def create_study(teamId):
     except Exception as e:
         return jsonify("please input allocType", 400)
 
-    # check if the team in database
-    Team.objects.get_or_404(teamId=teamId)
+    # check if the user have create the team in database, and find the team Oid
+    try:
+        OID = Team.objects.get(teamId=teamId,add_by=user).id
+    except Exception as e:
+        return jsonify("please check the teamId", 404)
     # add to Study db(by condition)
     Study = available_allocTypes[allocType]
     """generate unique study uuid"""
@@ -66,7 +75,8 @@ def create_study(teamId):
                               studyName=studyName,
                               allocType=allocType,
                               covars=covars_created,
-                              ).save()  # , participants=return_participants).save()
+                              add_by_team=OID,
+                              add_by_user=user).save()  # , participants=return_participants).save()
         # push the study to the team we create
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
         # return jsonify({"studyId": studyId}, 200)
@@ -88,7 +98,9 @@ def create_study(teamId):
                               allocType=allocType,
                               studyId=studyId,
                               studyName=studyName,
-                              studyGroupRatio=studyGroupRatio).save()
+                              studyGroupRatio=studyGroupRatio,
+                              add_by_team=OID,
+                              add_by_user=user).save()
 
         # update studies of a Team, by teamId
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
@@ -124,7 +136,9 @@ def create_study(teamId):
                               allocType=allocType,
                               studyId=studyId,
                               studyName=studyName,
-                              studyBlockSize=studyBlockSize).save()
+                              studyBlockSize=studyBlockSize,
+                              add_by_team=OID,
+                              add_by_user=user).save()
         # update studies of a Team, by teamId
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
 
@@ -161,7 +175,9 @@ def create_study(teamId):
                               allocType=allocType,
                               studyId=studyId,
                               studyName=studyName,
-                              studyBlockSizes=studyBlockSizes).save()
+                              studyBlockSizes=studyBlockSizes,
+                              add_by_team=OID,
+                              add_by_user=user).save()
         # update studies of a Team, by teamId
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
         """rand blockRand"""
@@ -181,38 +197,45 @@ def create_study(teamId):
         jsonify("error occur", 404)
 
 
-
 @study.route('/api/1.0.0/study/<studyId>', methods=['DELETE'])
+@jwt_required()
 def delete_study(studyId):
     """
-
     :param studyId: the UUID of a study
     :return: the confirmation of deletion
     """
+    """auth part"""
+    userId = get_jwt_identity()  # the user uuid
+    user = User.objects.get_or_404(userId=userId)  # find the user obj
+
     # delete study from database
-    study_deleted = Study.objects.get(studyId=studyId).delete()
+    study_deleted = Study.objects.get_or_404(studyId=studyId,add_by_user=user).delete()
     return jsonify("delete success", 200)
 
 
 ###retrive allocation or allocate a study###
 @study.route('/api/1.0.0/study/<studyId>', methods=['GET'])
+@jwt_required()
 def get_study(studyId):
     """
     get the allocation of a created study
     :param studyId: The UUID of a study
     :return: the allocation sequence of a study, and its parameter
     """
-    # test if is valid and get allocation type
-    studyGet = Study.objects(studyId=studyId).get_or_404()
-    # get the study object from db
-    studyObject = Study.objects(studyId=studyId)
+    """auth part"""
+    userId = get_jwt_identity()  # the user uuid
+    user = User.objects.get_or_404(userId=userId)  # find the user obj
 
+    # test if is valid and get allocation type
+    studyGet = Study.objects(studyId=studyId, add_by_user = user).get_or_404()
+    # get the study object from db
+    #studyObject = Study.objects(studyId=studyId)
 
     return Response(studyGet.to_json_allocation_sequence(), mimetype="application/json", status=200)
 
 
-
 @study.route('/api/1.0.0/study/view/<studyId>', methods=['GET'])
+@jwt_required()
 def view_study_parameter(studyId):
     """
     View a study parameter
@@ -222,5 +245,9 @@ def view_study_parameter(studyId):
     Example:
 
     """
-    view_object = Study.objects.get_or_404(studyId=studyId)
+    """auth part"""
+    userId = get_jwt_identity()  # the user uuid
+    user = User.objects.get_or_404(userId=userId)  # find the user obj
+
+    view_object = Study.objects.get_or_404(studyId=studyId,add_by_user = user)
     return Response(view_object.to_json_view_parameter(), mimetype="application/json", status=200)

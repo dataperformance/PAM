@@ -1,9 +1,10 @@
 from .db import db
 from mongoengine import DateTimeField, StringField, ReferenceField, ListField \
-    , IntField, CASCADE, EmbeddedDocumentField, MapField, DictField, UUIDField, FloatField
+    , IntField, CASCADE, EmbeddedDocumentField, MapField, DictField, UUIDField, FloatField, EmailField
 import mongoengine
 import json
-import bson.json_util as json_util
+
+from flask_bcrypt import generate_password_hash, check_password_hash
 
 
 class Study_Participant(db.DynamicDocument):
@@ -12,6 +13,7 @@ class Study_Participant(db.DynamicDocument):
     participantId = UUIDField(binary=False, required=True)
     participantCovarsIndex = None
     allocation = StringField(default=None)
+    add_by_user = ReferenceField('User')
 
     def get_participantId(self):
         return str(self.participantId)
@@ -37,6 +39,8 @@ class Study(db.Document):
     studyName = StringField(required=True, unique=False)
     studyGroupNames = ListField(StringField(), required=True)
     allocType = StringField(required=True)
+    add_by_team = ReferenceField('Team') # team the study belongs to
+    add_by_user = ReferenceField('User') # User the study belongs to
 
     meta = {'allow_inheritance': True}
 
@@ -52,7 +56,7 @@ class Study(db.Document):
         :return: Json format
         """
         data = {"allocationSequence": self.allocationSequence,
-                "allocType":self.allocType}
+                "allocType": self.allocType}
         return json.dumps(data)
 
     def to_json(self):
@@ -61,7 +65,9 @@ class Study(db.Document):
         :return: json format
         """
         data = self.to_mongo()
-        data.pop("_id")
+        data.pop("_id")#not show oid
+        data.pop("add_by_user")# not show the user info
+        data.pop("add_by_team")# not show the team info
         return json.dumps(data, default=str)
 
 
@@ -85,6 +91,8 @@ class Study_SimpleRand(Study):
         data.pop('_id')
         # remove the allocation sequence
         data.pop('allocationSequence')
+        data.pop('add_by_team')
+        data.pop('add_by_user')
         return json.dumps(data)
 
 
@@ -106,7 +114,8 @@ class Study_BlockRand(Study):
         data.pop('_id')
         # remove the allocation sequence
         data.pop('allocationSequence')
-        # dereference
+        data.pop('add_by_team')
+        data.pop('add_by_user')
         return json.dumps(data)
 
 
@@ -125,6 +134,8 @@ class Study_RandBlockRand(Study):
         data.pop('_id')
         # remove the allocation sequence
         data.pop('allocationSequence')
+        data.pop('add_by_team')
+        data.pop('add_by_user')
         return json.dumps(data)
 
 
@@ -155,6 +166,8 @@ class Study_Minimization(Study):
         data['covars'] = self.covars.field_name
         # prevent showing OID
         data.pop('_id')
+        data.pop('add_by_team')
+        data.pop('add_by_user')
         return json.dumps(data, default=str)
 
     def to_json_view_parameter(self):
@@ -166,6 +179,8 @@ class Study_Minimization(Study):
         data = self.to_mongo()
         # remove oid
         data.pop('_id')
+        data.pop('add_by_team')
+        data.pop('add_by_user')
         # remove the allocation sequence if it exist
         data.pop('allocationSequence') if self.allocationSequence else data
         # dereference participant and covars
@@ -180,6 +195,7 @@ class Team(db.Document):
     teamName = StringField(required=False)
     # studies of the team
     studies = ListField(ReferenceField(Study, reverse_delete_rule=mongoengine.PULL, dbref=True))
+    add_by = ReferenceField('User')
 
     def delete_all_studies(self):
         for study in self.studies:
@@ -198,10 +214,33 @@ class Team(db.Document):
             # "allocatedStatus" : str(study.allocated)})
         return studies
 
-
     def to_json(self):
         data = self.to_mongo()
         data["studies"] = self.get_studies()
         # prevent showing OID
         data.pop('_id')
+        # prevent showing the user oid
+        data.pop('add_by')
         return json.dumps(data, default=str)
+
+
+# if a team is deleted, its studies is deleted as well
+Team.register_delete_rule(Study, 'add_by', CASCADE)
+
+
+# users
+class User(db.Document):
+    email = EmailField(required=True, unique=True)
+    password = StringField(required=True, min_length=6)
+    userId = StringField(binary=False, required=True,unique=True)
+    teams = ListField(ReferenceField(Team, reverse_delete_rule=mongoengine.PULL), required=False, default=None)
+
+    def hash_password(self):
+        self.password = generate_password_hash(self.password).decode('utf8')
+
+    def check_password(self, password):
+        return check_password_hash(self.password, password)
+
+
+# if user deleted, its team is deleted as well
+User.register_delete_rule(Team, 'add_by', CASCADE)
