@@ -28,10 +28,10 @@ def get_team(teamId):
     """request part"""
 
     if teamId:
-        team = Team.objects(teamId=teamId, add_by=user).get_or_404()  # get a team that add by the user
+        team = Team.objects(teamId=teamId, add_by_user=user).get_or_404()  # get a team that add by the user
         return Response(team.to_json(), mimetype="application/json", status=200)
 
-    teams_objs = Team.objects(add_by=user).all()  # get all the teams that added by the user
+    teams_objs = Team.objects(add_by_user=user).all()  # get all the teams that added by the user
     teams = []
     # delete the oid from view
     for team_obj in teams_objs:
@@ -67,13 +67,20 @@ def create_team():
     # team id generate
     teamId = uuid.uuid4()
 
+
+
     # add to DB
     team_created = Team(teamName=teamData['teamName']
                         , teamId=teamId,
-                        add_by=user).save()  # create reference to the auth user
+                        add_by_user=user).save()  # create reference to the auth user
     # auto generate UUID4 to the teamID
+
+    #add team to the user
+    User.objects(userId = userId).update_one(push__teams=team_created)
+
     teamName = team_created.teamName
     teamId = team_created.teamId
+
     return {'teamId': teamId, 'teamName': teamName}, 200
 
 
@@ -92,7 +99,7 @@ def update_team(teamId):
     """request part"""
     teamData = request.get_json()
     teamId_update = teamId
-    Team.objects.get_or_404(teamId=teamId_update, add_by=user).update(**teamData)
+    Team.objects.get_or_404(teamId=teamId_update, add_by_user=user).update(**teamData)
     return jsonify("update success", 201)
 
 
@@ -109,5 +116,5 @@ def delete_team(teamId):
     userId = get_jwt_identity()  # the user uuid
     user = User.objects.get_or_404(userId=userId)  # find the user obj
 
-    Team.objects.get(teamId=teamId, add_by=user).delete()  # delete the team
+    Team.objects.get_or_404(teamId=teamId, add_by_user=user).delete()  # delete the team
     return jsonify("delete success", 200)

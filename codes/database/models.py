@@ -195,7 +195,7 @@ class Team(db.Document):
     teamName = StringField(required=False)
     # studies of the team
     studies = ListField(ReferenceField(Study, reverse_delete_rule=mongoengine.PULL, dbref=True))
-    add_by = ReferenceField('User')
+    add_by_user = ReferenceField('User')
 
     def delete_all_studies(self):
         for study in self.studies:
@@ -220,12 +220,12 @@ class Team(db.Document):
         # prevent showing OID
         data.pop('_id')
         # prevent showing the user oid
-        data.pop('add_by')
+        data.pop('add_by_user')
         return json.dumps(data, default=str)
 
 
 # if a team is deleted, its studies is deleted as well
-Team.register_delete_rule(Study, 'add_by', CASCADE)
+Team.register_delete_rule(Study, 'add_by_team', CASCADE)
 
 
 # users
@@ -243,4 +243,4 @@ class User(db.Document):
 
 
 # if user deleted, its team is deleted as well
-User.register_delete_rule(Team, 'add_by', CASCADE)
+User.register_delete_rule(Team, 'teams', CASCADE)

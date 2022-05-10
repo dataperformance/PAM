@@ -50,7 +50,7 @@ def create_study(teamId):
 
     # check if the user have create the team in database, and find the team Oid
     try:
-        OID = Team.objects.get(teamId=teamId,add_by=user).id
+        OID = Team.objects.get(teamId=teamId,add_by_user=user).id
     except Exception as e:
         return jsonify("please check the teamId", 404)
     # add to Study db(by condition)
