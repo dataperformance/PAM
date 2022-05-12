@@ -190,6 +190,14 @@ class Study_Minimization(Study):
         return json.dumps(data, default=str)
 
 
+class Study_StratBlockRand(Study):
+    numberParticipant = IntField(required=True, unique=False)
+    covars = ReferenceField(Study_Covariables,required=True)
+    studyBlockSize = IntField(required=True)
+    allocationSequence = ListField(DictField())
+
+
+
 class Team(db.Document):
     teamId = UUIDField(binary=False, required=True)
     teamName = StringField(required=False)

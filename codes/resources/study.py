@@ -1,12 +1,14 @@
 from flask import Blueprint, Response, request, jsonify
 from database.db import initialize_db
 from database.models import Team, Study, Study_SimpleRand, \
-    Study_BlockRand, Study_Block, Study_Minimization, Study_Covariables, Study_Participant, Study_RandBlockRand, User
+    Study_BlockRand, Study_Block, Study_Minimization, Study_Covariables, Study_Participant, Study_RandBlockRand, User, \
+    Study_StratBlockRand
 import uuid
 # import algorithms
 from Alloc_Algorithm._blockRand import block_randomization
 from Alloc_Algorithm._simpleRand import simple_rand
 from Alloc_Algorithm._blockRand import randomized_block_randomization
+from Alloc_Algorithm._stratBlockRand import strat_blcok_randomization
 from Alloc_Algorithm import Trial, Participant
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
@@ -17,7 +19,8 @@ available_allocTypes = {
     "simpleRand": Study_SimpleRand,
     "blockRand": Study_BlockRand,
     "minimization": Study_Minimization,
-    'randBlockRand': Study_RandBlockRand
+    'randBlockRand': Study_RandBlockRand,
+    "stratBlockRand": Study_StratBlockRand
 }
 
 
@@ -50,7 +53,7 @@ def create_study(teamId):
 
     # check if the user have create the team in database, and find the team Oid
     try:
-        OID = Team.objects.get(teamId=teamId,add_by_user=user).id
+        OID = Team.objects.get(teamId=teamId, add_by_user=user).id
     except Exception as e:
         return jsonify("please check the teamId", 404)
     # add to Study db(by condition)
@@ -193,6 +196,52 @@ def create_study(teamId):
         study_created.save()
         return Response(study_created.to_json(), mimetype="application/json", status=200)
 
+    elif allocType == "stratBlockRand":
+        """input validation"""
+        try:
+            numberParticipant = int(studyData['numberParticipant'])
+            studyGroupNames = studyData['studyGroupNames']
+            studyName = studyData['studyName']
+            studyBlockSize = studyData['studyBlockSize']
+            covars = studyData['covars']
+        except Exception as e:
+            print(e)
+            return jsonify("stratblockRand Input not correct", 400)
+
+        """stratblockRand"""
+        resultSequence = strat_blcok_randomization(num_participant=numberParticipant,
+                                                   group_name=studyGroupNames,
+                                                   block_size=studyBlockSize,
+                                                   covars=covars)
+
+        """Create and save the strat block Rand study"""
+        study_created = Study(studyGroupNames=studyGroupNames,
+                              numberParticipant=numberParticipant,
+                              allocType=allocType,
+                              studyId=studyId,
+                              studyName=studyName,
+                              studyBlockSize=studyBlockSize,
+                              add_by_team=OID,
+                              add_by_user=user,
+                              covars=covars).save()
+        # update studies of a Team, by teamId
+        Team.objects(teamId=teamId).update_one(push__studies=study_created)
+
+        # update sequence
+        for key in resultSequence.keys():
+            dic = {}
+            for j in key:
+                dic[j[0]] = str(j[1])
+
+            block = {"stratum": dic,
+                     "sequence": resultSequence[key]}
+            study_created.allocationSequence.append(block)
+
+        # update allocation
+        study_created.save()
+
+        return Response(study_created.to_json(), mimetype="application/json", status=200)
+
     else:
         jsonify("error occur", 404)
 
@@ -209,7 +258,7 @@ def delete_study(studyId):
     user = User.objects.get_or_404(userId=userId)  # find the user obj
 
     # delete study from database
-    study_deleted = Study.objects.get_or_404(studyId=studyId,add_by_user=user).delete()
+    study_deleted = Study.objects.get_or_404(studyId=studyId, add_by_user=user).delete()
     return jsonify("delete success", 200)
 
 
@@ -227,9 +276,9 @@ def get_study(studyId):
     user = User.objects.get_or_404(userId=userId)  # find the user obj
 
     # test if is valid and get allocation type
-    studyGet = Study.objects(studyId=studyId, add_by_user = user).get_or_404()
+    studyGet = Study.objects(studyId=studyId, add_by_user=user).get_or_404()
     # get the study object from db
-    #studyObject = Study.objects(studyId=studyId)
+    # studyObject = Study.objects(studyId=studyId)
 
     return Response(studyGet.to_json_allocation_sequence(), mimetype="application/json", status=200)
 
@@ -249,5 +298,5 @@ def view_study_parameter(studyId):
     userId = get_jwt_identity()  # the user uuid
     user = User.objects.get_or_404(userId=userId)  # find the user obj
 
-    view_object = Study.objects.get_or_404(studyId=studyId,add_by_user = user)
+    view_object = Study.objects.get_or_404(studyId=studyId, add_by_user=user)
     return Response(view_object.to_json_view_parameter(), mimetype="application/json", status=200)
