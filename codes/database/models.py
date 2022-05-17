@@ -68,6 +68,7 @@ class Study(db.Document):
         data.pop("_id")#not show oid
         data.pop("add_by_user")# not show the user info
         data.pop("add_by_team")# not show the team info
+        data.pop("_cls")  # avoid showing cls
         return json.dumps(data, default=str)
 
 
@@ -93,6 +94,7 @@ class Study_SimpleRand(Study):
         data.pop('allocationSequence')
         data.pop('add_by_team')
         data.pop('add_by_user')
+        data.pop('_cls')
         return json.dumps(data)
 
 
@@ -116,6 +118,7 @@ class Study_BlockRand(Study):
         data.pop('allocationSequence')
         data.pop('add_by_team')
         data.pop('add_by_user')
+        data.pop('_cls')
         return json.dumps(data)
 
 
@@ -136,6 +139,7 @@ class Study_RandBlockRand(Study):
         data.pop('allocationSequence')
         data.pop('add_by_team')
         data.pop('add_by_user')
+        data.pop('_cls')
         return json.dumps(data)
 
 
@@ -168,6 +172,7 @@ class Study_Minimization(Study):
         data.pop('_id')
         data.pop('add_by_team')
         data.pop('add_by_user')
+        data.pop('_cls')
         return json.dumps(data, default=str)
 
     def to_json_view_parameter(self):
@@ -179,6 +184,7 @@ class Study_Minimization(Study):
         data = self.to_mongo()
         # remove oid
         data.pop('_id')
+        data.pop('_cls')
         data.pop('add_by_team')
         data.pop('add_by_user')
         # remove the allocation sequence if it exist
@@ -195,7 +201,20 @@ class Study_StratBlockRand(Study):
     covars = ReferenceField(Study_Covariables,required=True)
     studyBlockSize = IntField(required=True)
     allocationSequence = ListField(DictField())
-
+    def to_json_view_parameter(self):
+        """
+        the study parameter in json format
+        :return:  json format
+        """
+        data = self.to_mongo()
+        # remove oid
+        data.pop('_id')
+        # remove the allocation sequence
+        data.pop('allocationSequence')
+        data.pop('add_by_team')
+        data.pop('add_by_user')
+        data.pop('_cls')
+        return json.dumps(data)
 
 
 class Team(db.Document):
