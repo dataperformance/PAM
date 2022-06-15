@@ -157,11 +157,28 @@ class Study_Minimization(Study):
     # the imbalance scores for the minimization allocation
     groupScores = DictField(required=False, default=None)
 
+    @staticmethod
+    def participant_IndexToVar(covars, participant):
+        """
+        covars: the covars for the entire study
+        participant: the individual participant
+        return: the string value of the participant covars
+        """
+        covars = covars.field_name
+        participantCovarsIndex = participant.participantCovarsIndex
+        participantCovars = {}
+        for key,value in participantCovarsIndex.items():
+            participantCovars[key] = covars[key][int(value)]
+        return participantCovars
+
+
     def get_participants(self):
         participants = []
         for participant in self.participants:
             participants.append({"participantId": str(participant.participantId),
-                                 "covarsIndex": participant.participantCovarsIndex})
+                                 "PID": str(participant.PID),
+                                 #"covarsIndex": participant.participantCovarsIndex,
+                                 "covars": self.participant_IndexToVar(self.covars, participant)},)
         return participants
 
     def to_json(self):
@@ -198,7 +215,7 @@ class Study_Minimization(Study):
         data.pop('add_by_team')
         data.pop('add_by_user')
         # remove the allocation sequence if it exist
-        data.pop('allocationSequence') if self.allocationSequence else data
+        #data.pop('allocationSequence') if self.allocationSequence else data
         # dereference participant and covars
         data['participants'] = self.get_participants()
         data['covars'] = self.covars.field_name
