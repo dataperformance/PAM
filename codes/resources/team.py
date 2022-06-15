@@ -9,7 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 team = Blueprint('team', __name__)
 
 
-@team.route('/api/1.0.0/team/', methods=['GET'])
+@team.route('/api/1.0.0/team/', methods=['POST']) #change to post
 #@team.route('/api/1.0.0/team/<teamId>', methods=['GET'])
 @jwt_required()
 def get_team():

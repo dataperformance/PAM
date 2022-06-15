@@ -278,7 +278,7 @@ def delete_study():
 
 
 ###retrive allocation or allocate a study###
-@study.route('/api/1.0.0/study', methods=['GET'])
+@study.route('/api/1.0.0/study', methods=['POST']) # change to post
 @jwt_required()
 def get_study():
     """
@@ -304,7 +304,7 @@ def get_study():
     return Response(studyGet.to_json_allocation_sequence(), mimetype="application/json", status=200)
 
 
-@study.route('/api/1.0.0/study/view', methods=['GET'])
+@study.route('/api/1.0.0/study/view', methods=['POST']) #change to post
 @jwt_required()
 def view_study_parameter():
     """
