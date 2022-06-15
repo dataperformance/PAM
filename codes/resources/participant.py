@@ -13,9 +13,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 participant = Blueprint('participant', __name__)
 
 
-@participant.route('/api/1.0.0/study/<studyId>/minimizeParticipant', methods=['POST'])
+@participant.route('/api/1.0.0/study/minimizeParticipant', methods=['POST'])
 @jwt_required()
-def add_participant(studyId):
+def add_participant():
     """
     insert a participant to the minimization study
 
@@ -26,6 +26,12 @@ def add_participant(studyId):
     """auth part"""
     userId = get_jwt_identity()  # the user uuid
     user = User.objects.get_or_404(userId=userId)  # find the user obj
+
+    """studyId validation"""
+    try:
+        studyId = request.get_json()['studyId']
+    except Exception as e:
+        return jsonify("Please Input studyId"), 404
 
     """Participant info section"""
     # get the information
@@ -71,7 +77,8 @@ def add_participant(studyId):
     study.save()
 
     """allocate the participant"""
-    participant_obj = Participant(ID=str(participantUUID), covars=studyCovars, covarIndex=participantCovarsIndex)
+    #participant_obj = Participant(ID=str(participantUUID), covars=studyCovars, covarIndex=participantCovarsIndex)
+    participant_obj = Participant(ID=str(PID), covars=studyCovars, covarIndex=participantCovarsIndex) #use PID instead of UUID
     trial_obj = Trial(Trial_name="test", group_name=studyGroupNames, covars=studyCovars, groupScore=studyGroupScores)
 
     # if no allocation in the minimization study
@@ -101,7 +108,10 @@ def add_participant(studyId):
     # get the updated group scores
     updatedGroupScores = trial_obj.getGroupScore()
     # append to the allocation sequence
-    allocationSequence[str(allocatedGroup)].append(str(participantUUID))
+
+    #allocationSequence[str(allocatedGroup)].append(str(participantUUID))
+
+    allocationSequence[str(allocatedGroup)].append(str(PID)) # use PID instead of UUID
     """find the allocation group and assign the participant to that group"""
     participant_created.allocation = str(allocatedGroup)
     participant_created.save()

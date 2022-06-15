@@ -175,6 +175,16 @@ class Study_Minimization(Study):
         data.pop('_cls')
         return json.dumps(data, default=str)
 
+    def to_json_allocation_sequence(self):
+        """
+        only return allocation sequence in json format
+        :return: Json format
+        """
+        data = {"allocationSequence": self.allocationSequence,
+                "allocType": self.allocType}
+        return json.dumps(data)
+
+
     def to_json_view_parameter(self):
         """
         the study parameter in json format

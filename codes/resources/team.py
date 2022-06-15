@@ -9,12 +9,15 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 team = Blueprint('team', __name__)
 
 
-@team.route('/api/1.0.0/team/', defaults={'teamId': None}, methods=['GET'])
-@team.route('/api/1.0.0/team/<teamId>', methods=['GET'])
+@team.route('/api/1.0.0/team/', methods=['GET'])
+#@team.route('/api/1.0.0/team/<teamId>', methods=['GET'])
 @jwt_required()
-def get_team(teamId):
+def get_team():
     """
     get all teams or a team by id
+    input:{
+    "teamId"
+    }
     :return:  {
         "teamId"
         "teamName"
@@ -26,10 +29,17 @@ def get_team(teamId):
     user = User.objects.get_or_404(userId=userId)  # find the user obj
 
     """request part"""
-
+    try:
+        teamId = request.get_json()['teamId']
+    except Exception as e:
+        teamId = None
+        pass
     if teamId:
-        team = Team.objects(teamId=teamId, add_by_user=user).get_or_404()  # get a team that add by the user
-        return Response(team.to_json(), mimetype="application/json", status=200)
+        try:
+            team = Team.objects(teamId=teamId, add_by_user=user).get_or_404()  # get a team that add by the user
+            return Response(team.to_json(), mimetype="application/json", status=200)
+        except Exception as e:
+            return jsonify("Invalid teamId"),404
 
     teams_objs = Team.objects(add_by_user=user).all()  # get all the teams that added by the user
     teams = []
@@ -37,7 +47,6 @@ def get_team(teamId):
     for team_obj in teams_objs:
         team = json.loads(team_obj.to_json())
         teams.append(team)
-
     view = {'allteams': teams}
     return jsonify(view), 200
 
@@ -85,36 +94,46 @@ def create_team():
 
 
 # update a team by teamId
-@team.route('/api/1.0.0/team/<teamId>', methods=['PATCH'])
+@team.route('/api/1.0.0/team', methods=['PATCH'])
 @jwt_required()
 def update_team(teamId):
     """
-
-    :param teamId:
+    :input teamId:
     :return: update teamName
     """
     """auth part"""
     userId = get_jwt_identity()  # the user uuid
     user = User.objects.get_or_404(userId=userId)  # find the user obj
     """request part"""
-    teamData = request.get_json()
-    teamId_update = teamId
-    Team.objects.get_or_404(teamId=teamId_update, add_by_user=user).update(**teamData)
-    return jsonify("update success", 201)
+
+    try:
+        teamName = request.get_json()['teamName']
+        teamId_update = request.get_json()['teamId']
+        Team.objects.get_or_404(teamId=teamId_update, add_by_user=user).update(*teamName)
+    except Exception as e:
+        return jsonify("Invalid request"),404
+
+    return jsonify("update success"),201
 
 
 # delete a team
-@team.route('/api/1.0.0/team/<teamId>', methods=['DELETE'])
+@team.route('/api/1.0.0/team/', methods=['DELETE'])
 @jwt_required()
-def delete_team(teamId):
+def delete_team():
     """
     delete a team and its all studies
-    :param teamId: the UUID of a team that need to be deleted
+    :input teamId: the UUID of a team that need to be deleted
     :return: confirmation of deletion
     """
     """auth part"""
     userId = get_jwt_identity()  # the user uuid
     user = User.objects.get_or_404(userId=userId)  # find the user obj
 
-    Team.objects.get_or_404(teamId=teamId, add_by_user=user).delete()  # delete the team
-    return jsonify("delete success", 200)
+    """request part"""
+    try:
+        teamId = request.get_json()['teamId']
+        Team.objects.get_or_404(teamId=teamId, add_by_user=user).delete()  # delete the team
+        return jsonify("delete success"),200
+    except Exception as e:
+        return jsonify("Invalid teamId"),404
+
