@@ -9,10 +9,11 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 team = Blueprint('team', __name__)
 
 
-@team.route('/api/1.0.0/team/', methods=['POST']) #change to post
-#@team.route('/api/1.0.0/team/<teamId>', methods=['GET'])
+# get a team or teams
+@team.route('/api/1.0.0/team/', defaults={'teamId': None}, methods=['GET'])  # default teamId is none
+@team.route('/api/1.0.0/team/<teamId>', methods=['GET'])
 @jwt_required()
-def get_team():
+def get_team(teamId):
     """
     get all teams or a team by id
     input:{
@@ -29,17 +30,12 @@ def get_team():
     user = User.objects.get_or_404(userId=userId)  # find the user obj
 
     """request part"""
-    try:
-        teamId = request.get_json()['teamId']
-    except Exception as e:
-        teamId = None
-        pass
     if teamId:
         try:
             team = Team.objects(teamId=teamId, add_by_user=user).get_or_404()  # get a team that add by the user
             return Response(team.to_json(), mimetype="application/json", status=200)
         except Exception as e:
-            return jsonify("Invalid teamId"),404
+            return jsonify("Invalid teamId"), 404
 
     teams_objs = Team.objects(add_by_user=user).all()  # get all the teams that added by the user
     teams = []
@@ -76,16 +72,14 @@ def create_team():
     # team id generate
     teamId = uuid.uuid4()
 
-
-
     # add to DB
     team_created = Team(teamName=teamData['teamName']
                         , teamId=teamId,
                         add_by_user=user).save()  # create reference to the auth user
     # auto generate UUID4 to the teamID
 
-    #add team to the user
-    User.objects(userId = userId).update_one(push__teams=team_created)
+    # add team to the user
+    User.objects(userId=userId).update_one(push__teams=team_created)
 
     teamName = team_created.teamName
     teamId = team_created.teamId
@@ -94,7 +88,7 @@ def create_team():
 
 
 # update a team by teamId
-@team.route('/api/1.0.0/team', methods=['PATCH'])
+@team.route('/api/1.0.0/team/<teamId>', methods=['PATCH'])
 @jwt_required()
 def update_team(teamId):
     """
@@ -108,18 +102,17 @@ def update_team(teamId):
 
     try:
         teamName = request.get_json()['teamName']
-        teamId_update = request.get_json()['teamId']
-        Team.objects.get_or_404(teamId=teamId_update, add_by_user=user).update(*teamName)
+        Team.objects.get_or_404(teamId=teamId, add_by_user=user).update(teamName=teamName)
     except Exception as e:
-        return jsonify("Invalid request"),404
+        return jsonify("Invalid request"), 404
 
-    return jsonify("update success"),201
+    return jsonify("update success"), 201
 
 
 # delete a team
-@team.route('/api/1.0.0/team/', methods=['DELETE'])
+@team.route('/api/1.0.0/team/<teamId>', methods=['DELETE'])
 @jwt_required()
-def delete_team():
+def delete_team(teamId):
     """
     delete a team and its all studies
     :input teamId: the UUID of a team that need to be deleted
@@ -131,9 +124,7 @@ def delete_team():
 
     """request part"""
     try:
-        teamId = request.get_json()['teamId']
         Team.objects.get_or_404(teamId=teamId, add_by_user=user).delete()  # delete the team
-        return jsonify("delete success"),200
+        return jsonify("delete success"), 200
     except Exception as e:
-        return jsonify("Invalid teamId"),404
-
+        return jsonify("Invalid teamId"), 404

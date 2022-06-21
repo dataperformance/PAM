@@ -26,23 +26,31 @@ app.register_blueprint(auth)
 #
 bcrypt = Bcrypt(app)
 
+# server type
+server_type = input("local(1) or cloud(2)")
+DB_address = {
+    1: {'host': 'mongodb://localhost/db'},
+    2: {
+        'host': "mongodb+srv://davidyin:i9rbUEVAo2rqonq9@cluster0.46hxy.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"}
+}
+app.config['MONGODB_SETTINGS'] = DB_address[int(server_type)]
+print("DB: ", app.config['MONGODB_SETTINGS'])
+
 # local test
-app.config['MONGODB_SETTINGS'] = {'host': 'mongodb://localhost/db'}
+# app.config['MONGODB_SETTINGS'] = {'host': 'mongodb://localhost/db'}
 
 # app.config.from_envvar('ENV_FILE_LOCATION')
 
 # cloud db
-app.config["MONGODB_SETTINGS"] = {'host': "mongodb+srv://davidyin:i9rbUEVAo2rqonq9@cluster0.46hxy.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"}
+# app.config["MONGODB_SETTINGS"] = {'host': "mongodb+srv://davidyin:i9rbUEVAo2rqonq9@cluster0.46hxy.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"}
 # secrets.token_hex(20)
-#app.config["SECRET_KEY"] = '24e7f1128e12e49122c6eed23211ffb51311650f'
+
+
+app.config["SECRET_KEY"] = '24e7f1128e12e49122c6eed23211ffb51311650f'
 
 jwt = JWTManager(app)  # initialize JWTManager
 app.config['JWT_SECRET_KEY'] = '24e7f1128e12e49122c6eed23211ffb51311650f'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=1)
-
-
-
-
 
 initialize_db(app)
 

@@ -49,8 +49,6 @@ def create_study():
     except Exception as e:
         return jsonify("Please Input teamId"), 404
 
-
-
     """allocation type validation"""
     try:
         allocType = studyData['allocType']
@@ -255,9 +253,9 @@ def create_study():
         jsonify("error occur", 404)
 
 
-@study.route('/api/1.0.0/study', methods=['DELETE'])
+@study.route('/api/1.0.0/study/<studyId>', methods=['DELETE'])
 @jwt_required()
-def delete_study():
+def delete_study(studyId):
     """
     :param studyId: the UUID of a study
     :return: the confirmation of deletion
@@ -268,19 +266,17 @@ def delete_study():
 
     """studyId validation"""
     try:
-        studyId = request.get_json()['studyId']
+        # delete study from database
+        study_deleted = Study.objects.get_or_404(studyId=studyId, add_by_user=user).delete()
+        return jsonify("delete success", 200)
     except Exception as e:
         return jsonify("Please Input studyId"), 404
 
-    # delete study from database
-    study_deleted = Study.objects.get_or_404(studyId=studyId, add_by_user=user).delete()
-    return jsonify("delete success", 200)
-
 
 ###retrive allocation or allocate a study###
-@study.route('/api/1.0.0/study', methods=['POST']) # change to post
+@study.route('/api/1.0.0/study/<studyId>', methods=['GET'])  # change to post
 @jwt_required()
-def get_study():
+def get_study(studyId):
     """
     get the allocation of a created study
     :input studyId: The UUID of a study
@@ -292,21 +288,19 @@ def get_study():
 
     """studyId validation"""
     try:
-        studyId = request.get_json()['studyId']
+        # test if is valid and get allocation type
+        studyGet = Study.objects(studyId=studyId, add_by_user=user).get_or_404()
+        # get the study object from db
+        # studyObject = Study.objects(studyId=studyId)
+
+        return Response(studyGet.to_json_allocation_sequence(), mimetype="application/json", status=200)
     except Exception as e:
         return jsonify("Please Input studyId"), 404
 
-    # test if is valid and get allocation type
-    studyGet = Study.objects(studyId=studyId, add_by_user=user).get_or_404()
-    # get the study object from db
-    # studyObject = Study.objects(studyId=studyId)
 
-    return Response(studyGet.to_json_allocation_sequence(), mimetype="application/json", status=200)
-
-
-@study.route('/api/1.0.0/study/view', methods=['POST']) #change to post
+@study.route('/api/1.0.0/study/view/<studyId>', methods=['GET'])
 @jwt_required()
-def view_study_parameter():
+def view_study_parameter(studyId):
     """
     View a study parameter
 
@@ -321,9 +315,7 @@ def view_study_parameter():
 
     """studyId validation"""
     try:
-        studyId = request.get_json()['studyId']
+        view_object = Study.objects.get_or_404(studyId=studyId, add_by_user=user)
+        return Response(view_object.to_json_view_parameter(), mimetype="application/json", status=200)
     except Exception as e:
         return jsonify("Please Input studyId"), 404
-
-    view_object = Study.objects.get_or_404(studyId=studyId, add_by_user=user)
-    return Response(view_object.to_json_view_parameter(), mimetype="application/json", status=200)
