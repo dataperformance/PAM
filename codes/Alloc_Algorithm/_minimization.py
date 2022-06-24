@@ -26,8 +26,6 @@ def minimization(self):
     # the second layer’s key is the covariable names, and its value is vector of int, which store the scores.
     group_scores = {i: {j: len(self.factors.get(j)) * [0] for j in self.factors} for i in self.group_name}
 
-    # group_scores = pd.DataFrame(group_scores)  # better visulization
-
     # intialize allocation(dictionary)
     allocation = {group_names[i]: [] for i in range(num_group)}
 
@@ -46,11 +44,11 @@ def minimization(self):
     # group_name is the name of the group that assigned to first participant
     group_name = group_names[group_id]
 
-    # updata allocation
+    # update allocation
     allocation[group_name].append(first_participant.getID())
     # first_participant.setAloc(group_name)
 
-    # updata group_scores
+    # update group_scores
     first_participant_covarIndex = first_participant.getCovarsIndex()
     for key, value in first_participant_covarIndex.items():
         group_scores[group_name][key][value] += 1

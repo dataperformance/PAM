@@ -1,3 +1,5 @@
+import uuid
+
 from .db import db
 from mongoengine import DateTimeField, StringField, ReferenceField, ListField \
     , IntField, CASCADE, EmbeddedDocumentField, MapField, DictField, UUIDField, FloatField, EmailField
@@ -10,10 +12,11 @@ from flask_bcrypt import generate_password_hash, check_password_hash
 class Study_Participant(db.DynamicDocument):
     # should have
     PID = StringField(default=None)
-    participantId = UUIDField(binary=False, required=True)
     participantCovarsIndex = None
     allocation = StringField(default=None)
-    add_by_user = ReferenceField('User')
+    add_by_user = ReferenceField('User')  # User the participant belongs to
+    add_by_study = ReferenceField('Study', unique_with='PID')  # Study the participant belongs to, must unique with
+    # each minimization study
 
     def get_participantId(self):
         return str(self.participantId)
@@ -26,11 +29,10 @@ class Study_Participant(db.DynamicDocument):
         data = self.to_mongo()
         # prevent showing OID
         data.pop('_id')
+        data["add_by_user"] = self.add_by_user.email # dereference the user by showing its email address
         data["PID"] = self.PID
         return json.dumps(data, default=str)
 
-    def __unicode__(self):
-        return self.participantId
 
 
 class Study(db.Document):
@@ -39,8 +41,8 @@ class Study(db.Document):
     studyName = StringField(required=True, unique=False)
     studyGroupNames = ListField(StringField(), required=True)
     allocType = StringField(required=True)
-    add_by_team = ReferenceField('Team') # team the study belongs to
-    add_by_user = ReferenceField('User') # User the study belongs to
+    add_by_team = ReferenceField('Team')  # team the study belongs to
+    add_by_user = ReferenceField('User')  # User the study belongs to
 
     meta = {'allow_inheritance': True}
 
@@ -65,9 +67,9 @@ class Study(db.Document):
         :return: json format
         """
         data = self.to_mongo()
-        data.pop("_id")#not show oid
-        data.pop("add_by_user")# not show the user info
-        data.pop("add_by_team")# not show the team info
+        data.pop("_id")  # not show oid
+        data.pop("add_by_user")  # not show the user info
+        data.pop("add_by_team")  # not show the team info
         data.pop("_cls")  # avoid showing cls
         return json.dumps(data, default=str)
 
@@ -152,7 +154,7 @@ class Study_Covariables(db.DynamicDocument):
 
 class Study_Minimization(Study):
     participants = ListField(ReferenceField(Study_Participant, reverse_delete_rule=mongoengine.PULL), required=False)
-    covars = ReferenceField(Study_Covariables, required=True)
+    covars = ReferenceField(Study_Covariables, required=True, reverse_delete_rule= mongoengine.PULL)
     allocationSequence = DictField(default=None)
     # the imbalance scores for the minimization allocation
     groupScores = DictField(required=False, default=None)
@@ -167,18 +169,17 @@ class Study_Minimization(Study):
         covars = covars.field_name
         participantCovarsIndex = participant.participantCovarsIndex
         participantCovars = {}
-        for key,value in participantCovarsIndex.items():
+        for key, value in participantCovarsIndex.items():
             participantCovars[key] = covars[key][int(value)]
         return participantCovars
-
 
     def get_participants(self):
         participants = []
         for participant in self.participants:
-            participants.append({"participantId": str(participant.participantId),
+            participants.append({"participantId": str(participant.id),
                                  "PID": str(participant.PID),
-                                 #"covarsIndex": participant.participantCovarsIndex,
-                                 "covars": self.participant_IndexToVar(self.covars, participant)},)
+                                 # "covarsIndex": participant.participantCovarsIndex,
+                                 "covars": self.participant_IndexToVar(self.covars, participant)}, )
         return participants
 
     def to_json(self):
@@ -201,7 +202,6 @@ class Study_Minimization(Study):
                 "allocType": self.allocType}
         return json.dumps(data)
 
-
     def to_json_view_parameter(self):
         """
         the study parameter in json format
@@ -215,7 +215,7 @@ class Study_Minimization(Study):
         data.pop('add_by_team')
         data.pop('add_by_user')
         # remove the allocation sequence if it exist
-        #data.pop('allocationSequence') if self.allocationSequence else data
+        # data.pop('allocationSequence') if self.allocationSequence else data
         # dereference participant and covars
         data['participants'] = self.get_participants()
         data['covars'] = self.covars.field_name
@@ -223,11 +223,14 @@ class Study_Minimization(Study):
         return json.dumps(data, default=str)
 
 
+
+
 class Study_StratBlockRand(Study):
     numberParticipant = IntField(required=True, unique=False)
-    covars = ReferenceField(Study_Covariables,required=True)
+    covars = ReferenceField(Study_Covariables, required=True)
     studyBlockSize = IntField(required=True)
     allocationSequence = ListField(DictField())
+
     def to_json_view_parameter(self):
         """
         the study parameter in json format
@@ -286,7 +289,7 @@ Team.register_delete_rule(Study, 'add_by_team', CASCADE)
 class User(db.Document):
     email = EmailField(required=True, unique=True)
     password = StringField(required=True, min_length=6)
-    userId = StringField(binary=False, required=True,unique=True)
+    userId = StringField(binary=False, required=True, unique=True)
     teams = ListField(ReferenceField(Team, reverse_delete_rule=mongoengine.PULL), required=False, default=None)
 
     def hash_password(self):

@@ -267,10 +267,15 @@ def delete_study(studyId):
     """studyId validation"""
     try:
         # delete study from database
-        study_deleted = Study.objects.get_or_404(studyId=studyId, add_by_user=user).delete()
+        study_deleted = Study.objects.get_or_404(studyId=studyId, add_by_user=user)
+
+        if str(study_deleted._cls) == "Study.Study_Minimization": # if deleting minimization study, delete all the
+            # participant that belong to the study
+            Study_Participant.objects(add_by_study=study_deleted).delete()
+            study_deleted.delete()
         return jsonify("delete success", 200)
     except Exception as e:
-        return jsonify("Please Input studyId"), 404
+        return jsonify("Please Input valid studyId"), 404
 
 
 ###retrive allocation or allocate a study###
@@ -318,4 +323,4 @@ def view_study_parameter(studyId):
         view_object = Study.objects.get_or_404(studyId=studyId, add_by_user=user)
         return Response(view_object.to_json_view_parameter(), mimetype="application/json", status=200)
     except Exception as e:
-        return jsonify("Please Input studyId"), 404
+        return jsonify("Please Input valid studyId"), 404
