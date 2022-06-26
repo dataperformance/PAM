@@ -269,9 +269,11 @@ def delete_study(studyId):
         # delete study from database
         study_deleted = Study.objects.get_or_404(studyId=studyId, add_by_user=user)
 
-        if str(study_deleted._cls) == "Study.Study_Minimization": # if deleting minimization study, delete all the
+        if str(study_deleted._cls) == "Study.Study_Minimization":
+            # if deleting minimization study, delete all the
             # participant that belong to the study
             Study_Participant.objects(add_by_study=study_deleted).delete()
+            study_deleted.covars.delete()
             study_deleted.delete()
         return jsonify("delete success", 200)
     except Exception as e:

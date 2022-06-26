@@ -26,25 +26,14 @@ app.register_blueprint(auth)
 #
 bcrypt = Bcrypt(app)
 
-# server type
-#server_type = -1
-#while server_type not in {0,1}:
-#    server_type = int(input("local(1) or cloud(2)"))
-#DB_address = {
-#    1: {'host': 'mongodb://localhost/db'},
-#    2: {
-#        'host': "mongodb+srv://davidyin:i9rbUEVAo2rqonq9@cluster0.46hxy.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"}
-#}
-#app.config['MONGODB_SETTINGS'] = DB_address[server_type]
-#print("DB: ", app.config['MONGODB_SETTINGS'])
 
 # local test
-app.config['MONGODB_SETTINGS'] = {'host': 'mongodb://localhost/db'}
+#app.config['MONGODB_SETTINGS'] = {'host': 'mongodb://localhost/db'}
 
 # app.config.from_envvar('ENV_FILE_LOCATION')
 
 # cloud db
-# app.config["MONGODB_SETTINGS"] = {'host': "mongodb+srv://davidyin:i9rbUEVAo2rqonq9@cluster0.46hxy.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"}
+app.config["MONGODB_SETTINGS"] = {'host': "mongodb+srv://davidyin:i9rbUEVAo2rqonq9@cluster0.46hxy.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"}
 # secrets.token_hex(20)
 
 

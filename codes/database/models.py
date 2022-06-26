@@ -2,7 +2,7 @@ import uuid
 
 from .db import db
 from mongoengine import DateTimeField, StringField, ReferenceField, ListField \
-    , IntField, CASCADE, EmbeddedDocumentField, MapField, DictField, UUIDField, FloatField, EmailField
+    , IntField, CASCADE, EmbeddedDocumentField, MapField, DictField, UUIDField, FloatField, EmailField,DynamicField
 import mongoengine
 import json
 
@@ -16,6 +16,7 @@ class Study_Participant(db.DynamicDocument):
     allocation = StringField(default=None)
     add_by_user = ReferenceField('User')  # User the participant belongs to
     add_by_study = ReferenceField('Study', unique_with='PID')  # Study the participant belongs to, must unique with
+
     # each minimization study
 
     def get_participantId(self):
@@ -29,10 +30,10 @@ class Study_Participant(db.DynamicDocument):
         data = self.to_mongo()
         # prevent showing OID
         data.pop('_id')
-        data["add_by_user"] = self.add_by_user.email # dereference the user by showing its email address
+        data["add_by_user"] = self.add_by_user.email  # dereference the user by showing its email address
+        data['add_by_study'] = self.add_by_study.studyId
         data["PID"] = self.PID
         return json.dumps(data, default=str)
-
 
 
 class Study(db.Document):
@@ -154,7 +155,7 @@ class Study_Covariables(db.DynamicDocument):
 
 class Study_Minimization(Study):
     participants = ListField(ReferenceField(Study_Participant, reverse_delete_rule=mongoengine.PULL), required=False)
-    covars = ReferenceField(Study_Covariables, required=True, reverse_delete_rule= mongoengine.PULL)
+    covars = ReferenceField(Study_Covariables, required=True)
     allocationSequence = DictField(default=None)
     # the imbalance scores for the minimization allocation
     groupScores = DictField(required=False, default=None)
@@ -221,8 +222,6 @@ class Study_Minimization(Study):
         data['covars'] = self.covars.field_name
 
         return json.dumps(data, default=str)
-
-
 
 
 class Study_StratBlockRand(Study):
