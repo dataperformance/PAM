@@ -1,8 +1,8 @@
 import uuid
 
 from .db import db
-from mongoengine import DateTimeField, StringField, ReferenceField, ListField \
-    , IntField, CASCADE, EmbeddedDocumentField, MapField, DictField, UUIDField, FloatField, EmailField,DynamicField
+from mongoengine import StringField, ReferenceField, ListField \
+    , IntField, CASCADE, DictField, UUIDField, FloatField, EmailField
 import mongoengine
 import json
 
@@ -11,13 +11,11 @@ from flask_bcrypt import generate_password_hash, check_password_hash
 
 class Study_Participant(db.DynamicDocument):
     # should have
-    PID = StringField(default=None)
+    PID = StringField(default=None, unique_with='owner_study')
     participantCovarsIndex = None
     allocation = StringField(default=None)
-    add_by_user = ReferenceField('User')  # User the participant belongs to
-    add_by_study = ReferenceField('Study', unique_with='PID')  # Study the participant belongs to, must unique with
-
-    # each minimization study
+    owner_user = ReferenceField('User')  # User the participant belongs to
+    owner_study = ReferenceField('Study')  # Study the participant belongs to, must unique with each minimization study
 
     def get_participantId(self):
         return str(self.participantId)
@@ -30,8 +28,8 @@ class Study_Participant(db.DynamicDocument):
         data = self.to_mongo()
         # prevent showing OID
         data.pop('_id')
-        data["add_by_user"] = self.add_by_user.email  # dereference the user by showing its email address
-        data['add_by_study'] = self.add_by_study.studyId
+        data["owner_user"] = self.owner_user.email  # dereference the user by showing its email address
+        data['owner_study'] = self.owner_study.studyId
         data["PID"] = self.PID
         return json.dumps(data, default=str)
 
@@ -42,8 +40,8 @@ class Study(db.Document):
     studyName = StringField(required=True, unique=False)
     studyGroupNames = ListField(StringField(), required=True)
     allocType = StringField(required=True)
-    add_by_team = ReferenceField('Team')  # team the study belongs to
-    add_by_user = ReferenceField('User')  # User the study belongs to
+    owner_team = ReferenceField('Team')  # team the study belongs to
+    owner_user = ReferenceField('User')  # User the study belongs to
 
     meta = {'allow_inheritance': True}
 
@@ -69,10 +67,23 @@ class Study(db.Document):
         """
         data = self.to_mongo()
         data.pop("_id")  # not show oid
-        data.pop("add_by_user")  # not show the user info
-        data.pop("add_by_team")  # not show the team info
+        data['owner_team'] = self.owner_team.teamName
+        data['owner_user'] = self.owner_user.email
         data.pop("_cls")  # avoid showing cls
         return json.dumps(data, default=str)
+
+    def to_json_simple_view(self):
+        """
+        customize to_json, return minimum info
+        """
+        show = {}
+        data = self.to_mongo()
+        show['studyId'] = data['studyId']
+        show['owner_team'] = str(self.owner_team.teamId)
+        show['allocType'] = data['allocType']
+        return json.dumps(show)
+
+
 
 
 class Study_Block(db.EmbeddedDocument):
@@ -179,7 +190,7 @@ class Study_Minimization(Study):
         for participant in self.participants:
             participants.append({"participantId": str(participant.id),
                                  "PID": str(participant.PID),
-                                 # "covarsIndex": participant.participantCovarsIndex,
+                                 "owner_user": str(participant.owner_user.email),
                                  "covars": self.participant_IndexToVar(self.covars, participant)}, )
         return participants
 
@@ -189,8 +200,8 @@ class Study_Minimization(Study):
         data['covars'] = self.covars.field_name
         # prevent showing OID
         data.pop('_id')
-        data.pop('add_by_team')
-        data.pop('add_by_user')
+        data['owner_user'] = self.owner_user.email
+        data['owner_team'] = self.owner_team.teamName
         data.pop('_cls')
         return json.dumps(data, default=str)
 
@@ -213,10 +224,8 @@ class Study_Minimization(Study):
         # remove oid
         data.pop('_id')
         data.pop('_cls')
-        data.pop('add_by_team')
-        data.pop('add_by_user')
-        # remove the allocation sequence if it exist
-        # data.pop('allocationSequence') if self.allocationSequence else data
+        data['owner_user'] = self.owner_user.email
+        data['owner_team'] = self.owner_team.teamName
         # dereference participant and covars
         data['participants'] = self.get_participants()
         data['covars'] = self.covars.field_name
@@ -248,10 +257,11 @@ class Study_StratBlockRand(Study):
 
 class Team(db.Document):
     teamId = UUIDField(binary=False, required=True)
-    teamName = StringField(required=False)
+    teamName = StringField(required=False,unique= True)
     # studies of the team
     studies = ListField(ReferenceField(Study, reverse_delete_rule=mongoengine.PULL, dbref=True))
-    add_by_user = ReferenceField('User')
+    owner_user = ReferenceField('User')  # only one owner for a team
+    member_users = ListField(ReferenceField('User',unique=True))  # team member array
 
     def delete_all_studies(self):
         for study in self.studies:
@@ -266,8 +276,8 @@ class Team(db.Document):
         studies = []
         for study in self.studies:
             studies.append({"studyId": str(study.studyId),
-                            "allocType": str(study.allocType)})
-            # "allocatedStatus" : str(study.allocated)})
+                            "allocType": str(study.allocType),
+                            "owner_user": str(study.owner_user.email)})
         return studies
 
     def to_json(self):
@@ -275,13 +285,13 @@ class Team(db.Document):
         data["studies"] = self.get_studies()
         # prevent showing OID
         data.pop('_id')
-        # prevent showing the user oid
-        data.pop('add_by_user')
+        data['owner_user'] = self.owner_user.email
+        data['member_users'] = [member.email for member in self.member_users]
         return json.dumps(data, default=str)
 
 
 # if a team is deleted, its studies is deleted as well
-Team.register_delete_rule(Study, 'add_by_team', CASCADE)
+Team.register_delete_rule(Study, 'owner_team', CASCADE)
 
 
 # users
@@ -298,5 +308,5 @@ class User(db.Document):
         return check_password_hash(self.password, password)
 
 
-# if user deleted, its team is deleted as well
+# if user deleted, its team is deleted as well(need to change)
 User.register_delete_rule(Team, 'teams', CASCADE)

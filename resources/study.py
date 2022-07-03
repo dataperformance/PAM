@@ -1,9 +1,8 @@
 from flask import Blueprint, Response, request, jsonify
-from database.db import initialize_db
 from database.models import Team, Study, Study_SimpleRand, \
     Study_BlockRand, Study_Block, Study_Minimization, Study_Covariables, Study_Participant, Study_RandBlockRand, User, \
     Study_StratBlockRand
-import uuid
+import uuid, json
 # import algorithms
 from Alloc_Algorithm._blockRand import block_randomization
 from Alloc_Algorithm._simpleRand import simple_rand
@@ -42,27 +41,26 @@ def create_study():
     user = User.objects.get_or_404(userId=userId)  # find the user obj
 
     # get the information
-    studyData = request.get_json()
-    """teamId validation"""
+    """request body"""
     try:
+        studyData = request.get_json()
         teamId = studyData['teamId']
-    except Exception as e:
-        return jsonify("Please Input teamId"), 404
-
-    """allocation type validation"""
-    try:
         allocType = studyData['allocType']
         # bad request if allocation not available or not consistent
         if allocType not in available_allocTypes or str(allocType) != studyData['allocType']:
-            return jsonify("Bad allocation type", 404)
-    except Exception as e:
-        return jsonify("please input allocType", 400)
+            return jsonify("Invalid allocation type", 404)
 
-    # check if the user have create the team in database, and find the team Oid
-    try:
-        OID = Team.objects.get(teamId=teamId, add_by_user=user).id
+        team = Team.objects.get(teamId=teamId)
+
+        if user not in team.member_users:  # check if user is in the team
+            return jsonify("unauthorized"), 401
+        # check if the user have create the team in database, and find the team Oid
+        team_OID = team.id
+    except KeyError as KE:
+        return jsonify({'msg': "key Error: {}".format(str(KE))}), 400
     except Exception as e:
-        return jsonify("please check the teamId", 404)
+        return jsonify({'msg': "ERROR: {}".format(str(e))}), 400
+
     # add to Study db(by condition)
     Study = available_allocTypes[allocType]
     """generate unique study uuid"""
@@ -76,7 +74,7 @@ def create_study():
             studyGroupNames = studyData['studyGroupNames']
             studyName = studyData['studyName']
         except Exception:
-            return jsonify("minimization Input not correct", 400)
+            return jsonify({'msg': "minimization Input not correct"}), 400
         # create covar variable for the study and store it to the database
         covars_created = Study_Covariables(field_name=covars).save()
         """create the minimization study, require participant covarsIndex"""
@@ -85,8 +83,8 @@ def create_study():
                               studyName=studyName,
                               allocType=allocType,
                               covars=covars_created,
-                              add_by_team=OID,
-                              add_by_user=user).save()  # , participants=return_participants).save()
+                              owner_team=team_OID,
+                              owner_user=user).save()  # , participants=return_participants).save()
         # push the study to the team we create
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
         # return jsonify({"studyId": studyId}, 200)
@@ -109,8 +107,8 @@ def create_study():
                               studyId=studyId,
                               studyName=studyName,
                               studyGroupRatio=studyGroupRatio,
-                              add_by_team=OID,
-                              add_by_user=user).save()
+                              owner_team=team_OID,
+                              owner_user=user).save()
 
         # update studies of a Team, by teamId
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
@@ -147,8 +145,8 @@ def create_study():
                               studyId=studyId,
                               studyName=studyName,
                               studyBlockSize=studyBlockSize,
-                              add_by_team=OID,
-                              add_by_user=user).save()
+                              owner_team=team_OID,
+                              owner_user=user).save()
         # update studies of a Team, by teamId
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
 
@@ -186,8 +184,8 @@ def create_study():
                               studyId=studyId,
                               studyName=studyName,
                               studyBlockSizes=studyBlockSizes,
-                              add_by_team=OID,
-                              add_by_user=user).save()
+                              owner_team=team_OID,
+                              owner_user=user).save()
         # update studies of a Team, by teamId
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
         """rand blockRand"""
@@ -212,7 +210,6 @@ def create_study():
             studyBlockSize = studyData['studyBlockSize']
             covars = studyData['covars']
         except Exception as e:
-            print(e)
             return jsonify("stratblockRand Input not correct", 400)
 
         """stratblockRand"""
@@ -228,8 +225,8 @@ def create_study():
                               studyId=studyId,
                               studyName=studyName,
                               studyBlockSize=studyBlockSize,
-                              add_by_team=OID,
-                              add_by_user=user,
+                              owner_team=team_OID,
+                              owner_user=user,
                               covars=covars).save()
         # update studies of a Team, by teamId
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
@@ -267,17 +264,21 @@ def delete_study(studyId):
     """studyId validation"""
     try:
         # delete study from database
-        study_deleted = Study.objects.get_or_404(studyId=studyId, add_by_user=user)
+        study_deleted = Study.objects.get_or_404(studyId=studyId)
+        if study_deleted.owner_user != user:  # only allow if the user is the owner
+            return jsonify("unauthorized"), 401
 
         if str(study_deleted._cls) == "Study.Study_Minimization":
             # if deleting minimization study, delete all the
             # participant that belong to the study
-            Study_Participant.objects(add_by_study=study_deleted).delete()
+            Study_Participant.objects(owner_study=study_deleted).delete()
             study_deleted.covars.delete()
+            study_deleted.delete()
+        else:
             study_deleted.delete()
         return jsonify("delete success", 200)
     except Exception as e:
-        return jsonify("Please Input valid studyId"), 404
+        return jsonify(str(e)), 404
 
 
 ###retrive allocation or allocate a study###
@@ -292,14 +293,13 @@ def get_study(studyId):
     """auth part"""
     userId = get_jwt_identity()  # the user uuid
     user = User.objects.get_or_404(userId=userId)  # find the user obj
-
     """studyId validation"""
     try:
-        # test if is valid and get allocation type
-        studyGet = Study.objects(studyId=studyId, add_by_user=user).get_or_404()
-        # get the study object from db
-        # studyObject = Study.objects(studyId=studyId)
-
+        user_teams = user.teams
+        studyGet = Study.objects(studyId=studyId).get_or_404()
+        study_team = studyGet.owner_team
+        if study_team not in user_teams:  # check if the user is authorized
+            return jsonify("unauthorized"), 401
         return Response(studyGet.to_json_allocation_sequence(), mimetype="application/json", status=200)
     except Exception as e:
         return jsonify("Please Input studyId"), 404
@@ -322,7 +322,31 @@ def view_study_parameter(studyId):
 
     """studyId validation"""
     try:
-        view_object = Study.objects.get_or_404(studyId=studyId, add_by_user=user)
+        view_object = Study.objects.get_or_404(studyId=studyId)
+        user_teams = user.teams
+        view_object_team = view_object.owner_team
+        if view_object_team not in user_teams:  # check if the user is authorized
+            return jsonify("Unauthorized"), 401
+
         return Response(view_object.to_json_view_parameter(), mimetype="application/json", status=200)
     except Exception as e:
-        return jsonify("Please Input valid studyId"), 404
+        return jsonify(str(e)), 404
+
+
+@study.route('/api/1.0.0/study/all', methods=['GET'])  # change to post
+@jwt_required()
+def get_all_studies():
+    """
+    get all the studies whose owner is the current user
+    :return: all the studies
+    """
+    """auth part"""
+    userId = get_jwt_identity()  # the user uuid
+    user = User.objects.get_or_404(userId=userId)  # find the user obj
+    """studyId validation"""
+    try:
+        studiesGet = Study.objects(owner_team__in=user.teams).all()
+        allstudies = [] if not studiesGet else [json.loads(studyGet.to_json_simple_view()) for studyGet in studiesGet]
+    except Exception as e:
+        return jsonify(str(e))
+    return jsonify({'allstudies': allstudies}), 200
