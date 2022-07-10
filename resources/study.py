@@ -84,11 +84,13 @@ def create_study():
                               allocType=allocType,
                               covars=covars_created,
                               owner_team=team_OID,
-                              owner_user=user).save()  # , participants=return_participants).save()
+                              owner_user=user,
+                              member_users=[user]).save()
         # push the study to the team we create
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
-        # return jsonify({"studyId": studyId}, 200)
-        return Response(study_created.to_json(), mimetype="application/json", status=200)
+        # push the study to the user obj
+        user.update(add_to_set__studies=study_created)
+        return Response(study_created.to_json_view_parameter(), mimetype="application/json", status=200)
 
     # if simpleRand
     elif allocType == "simpleRand":
@@ -108,7 +110,8 @@ def create_study():
                               studyName=studyName,
                               studyGroupRatio=studyGroupRatio,
                               owner_team=team_OID,
-                              owner_user=user).save()
+                              owner_user=user,
+                              member_users=[user]).save()
 
         # update studies of a Team, by teamId
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
@@ -123,8 +126,10 @@ def create_study():
         """update the study"""
         study_created.allocationSequence = allocationSequence
         study_created.save()
+        # push the study to the user obj
+        user.update(add_to_set__studies=study_created)
 
-        return Response(study_created.to_json(), mimetype="application/json", status=200)
+        return Response(study_created.to_json_view_parameter(), mimetype="application/json", status=200)
 
     # if blockRand
     elif allocType == "blockRand":
@@ -146,7 +151,8 @@ def create_study():
                               studyName=studyName,
                               studyBlockSize=studyBlockSize,
                               owner_team=team_OID,
-                              owner_user=user).save()
+                              owner_user=user,
+                              member_users=[user]).save()
         # update studies of a Team, by teamId
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
 
@@ -162,8 +168,9 @@ def create_study():
 
         # update allocation
         study_created.save()
-
-        return Response(study_created.to_json(), mimetype="application/json", status=200)
+        # push the study to the user obj
+        user.update(add_to_set__studies=study_created)
+        return Response(study_created.to_json_view_parameter(), mimetype="application/json", status=200)
 
     # if rand block rand
     elif allocType == "randBlockRand":
@@ -185,7 +192,8 @@ def create_study():
                               studyName=studyName,
                               studyBlockSizes=studyBlockSizes,
                               owner_team=team_OID,
-                              owner_user=user).save()
+                              owner_user=user,
+                              member_users=[user]).save()
         # update studies of a Team, by teamId
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
         """rand blockRand"""
@@ -199,7 +207,9 @@ def create_study():
             res.append(block)
             study_created.allocationSequence.append(block)
         study_created.save()
-        return Response(study_created.to_json(), mimetype="application/json", status=200)
+        # push the study to the user obj
+        user.update(add_to_set__studies=study_created)
+        return Response(study_created.to_json_view_parameter(), mimetype="application/json", status=200)
 
     elif allocType == "stratBlockRand":
         """input validation"""
@@ -227,7 +237,8 @@ def create_study():
                               studyBlockSize=studyBlockSize,
                               owner_team=team_OID,
                               owner_user=user,
-                              covars=covars).save()
+                              covars=covars,
+                              member_users=[user]).save()
         # update studies of a Team, by teamId
         Team.objects(teamId=teamId).update_one(push__studies=study_created)
 
@@ -243,8 +254,10 @@ def create_study():
 
         # update allocation
         study_created.save()
+        # push the study to the user obj
+        user.update(add_to_set__studies=study_created)
 
-        return Response(study_created.to_json(), mimetype="application/json", status=200)
+        return Response(study_created.to_json_view_parameter(), mimetype="application/json", status=200)
 
     else:
         jsonify("error occur", 404)
@@ -265,7 +278,9 @@ def delete_study(studyId):
     try:
         # delete study from database
         study_deleted = Study.objects.get_or_404(studyId=studyId)
-        if study_deleted.owner_user != user:  # only allow if the user is the owner
+        #if study_deleted.owner_user != user :  # only allow if the user is the owner or the team owner
+            #return jsonify("unauthorized"), 401
+        if not study_deleted.privilege_modify_check(user):
             return jsonify("unauthorized"), 401
 
         if str(study_deleted._cls) == "Study.Study_Minimization":
@@ -286,19 +301,18 @@ def delete_study(studyId):
 @jwt_required()
 def get_study(studyId):
     """
-    get the allocation of a created study
+    get the allocation of a created study(only the study member)
     :input studyId: The UUID of a study
-    :return: the allocation sequence of a study, and its parameter
+    :return: the allocation sequence of a study
     """
     """auth part"""
     userId = get_jwt_identity()  # the user uuid
-    user = User.objects.get_or_404(userId=userId)  # find the user obj
+    user = User.objects.get_or_404(userId=userId)# find the user obj
+    user_studies = user.studies
     """studyId validation"""
     try:
-        user_teams = user.teams
         studyGet = Study.objects(studyId=studyId).get_or_404()
-        study_team = studyGet.owner_team
-        if study_team not in user_teams:  # check if the user is authorized
+        if user_studies is None or studyGet not in user_studies:  # check if the user is authorized
             return jsonify("unauthorized"), 401
         return Response(studyGet.to_json_allocation_sequence(), mimetype="application/json", status=200)
     except Exception as e:
@@ -309,7 +323,7 @@ def get_study(studyId):
 @jwt_required()
 def view_study_parameter(studyId):
     """
-    View a study parameter
+    View a study parameter(only the study member)
 
     :param studyId: UUID of a study
     :return: parameter of a study
@@ -323,9 +337,8 @@ def view_study_parameter(studyId):
     """studyId validation"""
     try:
         view_object = Study.objects.get_or_404(studyId=studyId)
-        user_teams = user.teams
-        view_object_team = view_object.owner_team
-        if view_object_team not in user_teams:  # check if the user is authorized
+        user_studies = user.studies
+        if user_studies is None or view_object not in user_studies:  # check if the user is authorized
             return jsonify("Unauthorized"), 401
 
         return Response(view_object.to_json_view_parameter(), mimetype="application/json", status=200)
@@ -345,7 +358,7 @@ def get_all_studies():
     user = User.objects.get_or_404(userId=userId)  # find the user obj
     """studyId validation"""
     try:
-        studiesGet = Study.objects(owner_team__in=user.teams).all()
+        studiesGet = user.studies
         allstudies = [] if not studiesGet else [json.loads(studyGet.to_json_simple_view()) for studyGet in studiesGet]
     except Exception as e:
         return jsonify(str(e))

@@ -1,5 +1,5 @@
 from flask import Blueprint, Response, request, jsonify
-from database.models import User, Team
+from database.models import User, Team, Study
 import uuid
 import datetime
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
@@ -51,7 +51,7 @@ def login():
 # add a user to the team by input email
 @auth.route('/api/1.0.0/team/add/user', methods=['PATCH'])
 @jwt_required()
-def add_user():
+def add_user_team():
     """
     add a user to the team by input email
     input:{
@@ -71,28 +71,28 @@ def add_user():
         memberUser = User.objects(email=userEmail).first()
         team = Team.objects(teamId=teamId).first()
         if memberUser is None:
-            return jsonify({'msg':"Invalid user email"}), 404
+            return jsonify({'msg': "Invalid user email"}), 404
         if team is None:
-            return jsonify({'msg':"Invalid teamId"}), 404
+            return jsonify({'msg': "Invalid teamId"}), 404
         if team.owner_user != user:
-            return jsonify({'msg':"Unauthorized"}), 401
+            return jsonify({'msg': "Unauthorized"}), 401
     except KeyError as KE:
-        return jsonify({'msg':"key Error: {}".format(str(KE))}), 404
+        return jsonify({'msg': "key Error: {}".format(str(KE))}), 404
 
     # add the member to the team
     # push the team member only if the team member not in the team
     if memberUser.teams is not None and team in memberUser.teams:
-        return jsonify({'msg':"the member user is already in the team"}), 409
+        return jsonify({'msg': "the member user is already in the team"}), 409
     team.update(add_to_set__member_users=memberUser)
     # update the user
     memberUser.update(add_to_set__teams=team)
-    return jsonify({'msg':"success"}), 200
+    return jsonify({'msg': "success"}), 200
 
 
 # remove a user from a team by input email
 @auth.route('/api/1.0.0/team/remove/user', methods=['PATCH'])
 @jwt_required()
-def remove_user():
+def remove_user_team():
     """auth part"""
     userId = get_jwt_identity()  # the user uuid
     user = User.objects.get_or_404(userId=userId)  # find the user obj
@@ -105,20 +105,104 @@ def remove_user():
         memberUser = User.objects(email=userEmail).first()
         team = Team.objects(teamId=teamId).first()
         if memberUser is None:
-            return jsonify({'msg':"Invalid user email"}), 404
+            return jsonify({'msg': "Invalid user email"}), 404
         if team is None:
-            return jsonify({'msg':"Invalid teamId"}), 404
+            return jsonify({'msg': "Invalid teamId"}), 404
         if team.owner_user != user:
-            return jsonify({'msg':"Unauthorized"}), 401
+            return jsonify({'msg': "Unauthorized"}), 401
     except KeyError as KE:
         return jsonify("key Error: {}".format(str(KE))), 404
 
     if memberUser not in team.member_users:
-        return jsonify({'msg':"Team member not found"}), 404
+        return jsonify({'msg': "Team member not found"}), 404
 
     # pull the user reference from team obj
     team.update(pull__member_users=memberUser)
     # pull the team reference from the user obj
     memberUser.update(pull__teams=team)
 
-    return jsonify({'msg': str(userEmail)+"has been removed from the team"}), 201
+    return jsonify({'msg': str(userEmail) + "has been removed from the team"}), 201
+
+
+# add a user to the minimization study by input email
+@auth.route('/api/1.0.0/study/add/user', methods=['PATCH'])
+@jwt_required()
+def add_user_study():
+    """
+    add a user to the minimization study by input member email
+    input:{
+    user email
+    }
+    """
+    """auth part"""
+    userId = get_jwt_identity()  # the user uuid
+    user = User.objects.get_or_404(userId=userId)  # find the user obj
+
+    """request body"""
+    # get the user according to the email
+    try:
+        Data = request.get_json()
+        userEmail = Data['email']
+        studyId = Data['studyId']
+        memberUser = User.objects(email=userEmail).first()
+        study = Study.objects(studyId=studyId).first()
+        if memberUser is None:
+            return jsonify({'msg': "Invalid user email"}), 404
+        if study is None:
+            return jsonify({'msg': "Invalid studyId"}), 404
+        if user != study.owner_user:
+            return jsonify({'msg': "Unauthorized"}), 401
+    except KeyError as KE:
+        return jsonify({'msg': "key Error: {}".format(str(KE))}), 404
+
+    # add the member to the minimization study
+    # push the user to the study only if the user is in the team
+    if memberUser.teams is None or study.owner_team not in memberUser.teams:
+        return jsonify({'msg': "the member user is not in the team of the study, please add the member user to the "
+                               "team first"}), 409
+    elif memberUser in study.member_users:
+        return jsonify({'msg': "the member is already in the study"}), 409
+    study.update(add_to_set__member_users=memberUser)
+    # update the user
+    memberUser.update(add_to_set__studies=study)
+    return jsonify({'msg': "success"}), 200
+
+
+# remove a user from a team by input email
+@auth.route('/api/1.0.0/study/remove/user', methods=['PATCH'])
+@jwt_required()
+def remove_user_study():
+    """
+    remove a user from the minimization study by input member email
+    input:{
+    user email
+    }
+    """
+    """auth part"""
+    userId = get_jwt_identity()  # the user uuid
+    user = User.objects.get_or_404(userId=userId)  # find the user obj
+
+    """request body"""
+    try:
+        Data = request.get_json()
+        userEmail = Data['email']
+        studyId = Data['studyId']
+        memberUser = User.objects(email=userEmail).first()
+        study = Study.objects(studyId=studyId).first()
+        if memberUser is None:
+            return jsonify({'msg': "Invalid user email"}), 404
+        if study is None:
+            return jsonify({'msg': "Invalid teamId"}), 404
+        if study.owner_user != user:
+            return jsonify({'msg': "Unauthorized"}), 401
+    except KeyError as KE:
+        return jsonify("key Error: {}".format(str(KE))), 404
+
+    if memberUser not in study.member_users:
+        return jsonify({'msg': "Study member not found"}), 404
+
+    # pull the user reference from team obj
+    study.update(pull__member_users=memberUser)
+    # pull the team reference from the user obj
+    memberUser.update(pull__studies=study)
+    return jsonify({'msg': str(userEmail) + "has been removed from the team"}), 201

@@ -42,7 +42,7 @@ class Study(db.Document):
     allocType = StringField(required=True)
     owner_team = ReferenceField('Team')  # team the study belongs to
     owner_user = ReferenceField('User')  # User the study belongs to
-
+    member_users = ListField(ReferenceField('User', unique=True))  # study member who can modify the study
     meta = {'allow_inheritance': True}
 
     def __unicode__(self):
@@ -79,12 +79,20 @@ class Study(db.Document):
         show = {}
         data = self.to_mongo()
         show['studyId'] = data['studyId']
+        show['studyName'] = data['studyName']
         show['owner_team'] = str(self.owner_team.teamId)
         show['allocType'] = data['allocType']
         return json.dumps(show)
 
+    def privilege_modify_check(self, user) -> bool:
+        """
+        check if the user has the privilege to modify the study
+        """
+        return True if user == self.owner_user or user == self.owner_team.owner_user else False
 
-
+    def get_member_users_email(self):
+        show = [member.email for member in self.member_users]
+        return show
 
 class Study_Block(db.EmbeddedDocument):
     # sequence within a block
@@ -106,8 +114,9 @@ class Study_SimpleRand(Study):
         data.pop('_id')
         # remove the allocation sequence
         data.pop('allocationSequence')
-        data.pop('add_by_team')
-        data.pop('add_by_user')
+        data.pop('owner_team')
+        data.pop('owner_user')
+        data['member_users'] = [member.email for member in self.member_users]  # de-reference each user
         data.pop('_cls')
         return json.dumps(data)
 
@@ -130,8 +139,9 @@ class Study_BlockRand(Study):
         data.pop('_id')
         # remove the allocation sequence
         data.pop('allocationSequence')
-        data.pop('add_by_team')
-        data.pop('add_by_user')
+        data.pop('owner_team')
+        data.pop('owner_user')
+        data['member_users'] = [member.email for member in self.member_users]  # de-reference each user
         data.pop('_cls')
         return json.dumps(data)
 
@@ -151,8 +161,9 @@ class Study_RandBlockRand(Study):
         data.pop('_id')
         # remove the allocation sequence
         data.pop('allocationSequence')
-        data.pop('add_by_team')
-        data.pop('add_by_user')
+        data.pop('owner_team')
+        data.pop('owner_user')
+        data['member_users'] = [member.email for member in self.member_users]  # de-reference each user
         data.pop('_cls')
         return json.dumps(data)
 
@@ -170,6 +181,7 @@ class Study_Minimization(Study):
     allocationSequence = DictField(default=None)
     # the imbalance scores for the minimization allocation
     groupScores = DictField(required=False, default=None)
+    #member_users = ListField(ReferenceField('User', unique=True))  # study member who can modify the study
 
     @staticmethod
     def participant_IndexToVar(covars, participant):
@@ -198,10 +210,10 @@ class Study_Minimization(Study):
         data = self.to_mongo()
         data["participants"] = self.get_participants()
         data['covars'] = self.covars.field_name
-        # prevent showing OID
-        data.pop('_id')
+        data.pop('_id')# prevent showing OID
         data['owner_user'] = self.owner_user.email
         data['owner_team'] = self.owner_team.teamName
+        data['member_users'] = [member.email for member in self.member_users]  # de-reference each user
         data.pop('_cls')
         return json.dumps(data, default=str)
 
@@ -232,6 +244,9 @@ class Study_Minimization(Study):
 
         return json.dumps(data, default=str)
 
+    def privilege_modify_check(self, user) -> bool:
+        """check if the user can modify this study"""
+        return user in self.member_users
 
 class Study_StratBlockRand(Study):
     numberParticipant = IntField(required=True, unique=False)
@@ -249,19 +264,20 @@ class Study_StratBlockRand(Study):
         data.pop('_id')
         # remove the allocation sequence
         data.pop('allocationSequence')
-        data.pop('add_by_team')
-        data.pop('add_by_user')
+        data.pop('owner_team')
+        data.pop('owner_user')
+        data['member_users'] = [member.email for member in self.member_users]  # de-reference each user
         data.pop('_cls')
         return json.dumps(data)
 
 
 class Team(db.Document):
     teamId = UUIDField(binary=False, required=True)
-    teamName = StringField(required=False,unique= True)
+    teamName = StringField(required=False, unique=True)
     # studies of the team
     studies = ListField(ReferenceField(Study, reverse_delete_rule=mongoengine.PULL, dbref=True))
     owner_user = ReferenceField('User')  # only one owner for a team
-    member_users = ListField(ReferenceField('User',unique=True))  # team member array
+    member_users = ListField(ReferenceField('User', unique=True))  # team member array
 
     def delete_all_studies(self):
         for study in self.studies:
@@ -277,7 +293,8 @@ class Team(db.Document):
         for study in self.studies:
             studies.append({"studyId": str(study.studyId),
                             "allocType": str(study.allocType),
-                            "owner_user": str(study.owner_user.email)})
+                            "owner_user": str(study.owner_user.email),
+                           "member_users": study.get_member_users_email()})
         return studies
 
     def to_json(self):
@@ -300,7 +317,7 @@ class User(db.Document):
     password = StringField(required=True, min_length=6)
     userId = StringField(binary=False, required=True, unique=True)
     teams = ListField(ReferenceField(Team, reverse_delete_rule=mongoengine.PULL), required=False, default=None)
-
+    studies = ListField(ReferenceField(Study, reverse_delete_rule=mongoengine.PULL), required=False, default=None)
     def hash_password(self):
         self.password = generate_password_hash(self.password).decode('utf8')
 

@@ -43,10 +43,9 @@ def minimize_participant():
         # allocation sequence
         allocationSequence = study.allocationSequence
 
-        ### authority validation: only the team member can use call this request###
-        owner_team = study.owner_team
-        owner_users = owner_team.member_users
-        if user not in owner_users:
+        ### authority validation: only the study member can use call this request###
+        member_users = study.member_users
+        if user not in member_users:
             return jsonify({"msg":"Unauthorized"}), 401
 
     except KeyError as KE:
@@ -162,10 +161,9 @@ def delete_participant(studyId, PID):
         studyGroupScores = study.groupScores
         # allocation sequence
         allocationSequence = study.allocationSequence
-        ### authority validation: only the team member can use call this request###
-        owner_team = study.owner_team
-        owner_users = owner_team.member_users
-        if user not in owner_users:
+        ### authority validation: only the study member can use call this request###
+        member_users = study.member_users
+        if user not in member_users:
             return jsonify({"msg":"Unauthorized"}), 401
 
     except Exception as e:
@@ -221,11 +219,10 @@ def add_participant():
         studyGroupNames = study.studyGroupNames
         # allocation sequence
         allocationSequence = study.allocationSequence
-        ### authority validation: only the team member can use call this request###
-        owner_team = study.owner_team
-        owner_users = owner_team.member_users
-        if user not in owner_users:
-            return jsonify("Unauthorized"), 401
+        ### authority validation: only the study member can use call this request###
+        member_users = study.member_users
+        if user not in member_users:
+            return jsonify({"msg":"Unauthorized"}), 401
 
     except KeyError as KE:
         return jsonify({"msg": "Input Key Error: {}".format(str(KE))}), 404
