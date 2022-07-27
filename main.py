@@ -28,12 +28,12 @@ bcrypt = Bcrypt(app)
 
 
 # local test
-app.config['MONGODB_SETTINGS'] = {'host': 'mongodb://localhost/db'}
+#app.config['MONGODB_SETTINGS'] = {'host': 'mongodb://localhost/db'}
 
 # app.config.from_envvar('ENV_FILE_LOCATION')
 
 # cloud db
-#app.config["MONGODB_SETTINGS"] = {'host': "mongodb+srv://davidyin:i9rbUEVAo2rqonq9@cluster0.46hxy.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"}
+app.config["MONGODB_SETTINGS"] = {'host': "mongodb+srv://davidyin:i9rbUEVAo2rqonq9@cluster0.46hxy.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"}
 # secrets.token_hex(20)
 
 
