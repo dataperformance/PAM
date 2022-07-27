@@ -10,17 +10,17 @@ team = Blueprint('team', __name__)
 
 
 # get a team or teams
-@team.route('/api/1.0.0/team/', defaults={'teamId': None}, methods=['GET'])  # default teamId is none
-@team.route('/api/1.0.0/team/<teamId>', methods=['GET'])
+@team.route('/api/1.0.0/team/', defaults={'teamName': None}, methods=['GET'])  # default teamName is none
+@team.route('/api/1.0.0/team/<teamName>', methods=['GET'])
 @jwt_required()
-def get_team(teamId):
+def get_team(teamName):
     """
     get all teams or a team by id
     input:{
-    "teamId"
+    "teamName"
     }
     :return:  {
-        "teamId"
+        "teamName"
         "teamName"
         "studies"
     }
@@ -30,14 +30,14 @@ def get_team(teamId):
     user = User.objects.get_or_404(userId=userId)  # find the user obj
     teams = user.teams
     """request part"""
-    if teamId:
+    if teamName:
         try:
-            team = Team.objects(teamId=teamId).get_or_404()  # get a team that add by the user
+            team = Team.objects(teamName=teamName).get_or_404()  # get a team that add by the user
             if team not in teams:
                 return jsonify("Unauthorized"), 401
             return Response(team.to_json(), mimetype="application/json", status=200)
         except Exception as e:
-            return jsonify("Invalid teamId"), 404
+            return jsonify("Invalid teamName"), 404
 
     # Team.objects(add_by_user=user).all()  # get all the teams that added by the user
     allteams = [] if not teams else [json.loads(team.to_json()) for team in teams]
@@ -55,7 +55,7 @@ def create_team():
     }
 
     :return: {
-    "teamId":UUID,
+    "teamName":UUID,
     "teamName:string"
     }
     """
@@ -73,9 +73,12 @@ def create_team():
     # add to DB
     try:
         team_created = Team(teamName=teamData['teamName'],
-                            teamId=teamId,
                             owner_user=user,
                             member_users=[user]).save()
+
+    except mongoengine.ValidationError as VE:
+        return jsonify({"msg": """teamName should not include special symbols: !@# 
+    $%^&*()-+?=,<>/"""})
 
     except mongoengine.errors.NotUniqueError as e:
         return jsonify({'msg':"teamName need to be unique"}),400
@@ -84,17 +87,16 @@ def create_team():
     User.objects(userId=userId).update_one(push__teams=team_created)
 
     teamName = team_created.teamName
-    teamId = team_created.teamId
 
-    return {'teamId': teamId, 'teamName': teamName}, 200
+    return {'teamName': teamName}, 200
 
 
-# update a team by teamId
-@team.route('/api/1.0.0/team/<teamId>', methods=['PATCH'])
+# update a team by teamName
+@team.route('/api/1.0.0/team/<teamName>', methods=['PATCH'])
 @jwt_required()
-def update_team(teamId):
+def update_team(teamName):
     """
-    :input teamId:
+    :input teamName:
     :return: update teamName
     """
     """auth part"""
@@ -103,11 +105,11 @@ def update_team(teamId):
     """request part"""
 
     try:
-        teamName = request.get_json()['teamName']
-        team = Team.objects.get_or_404(teamId=teamId)
+        new_teamName = request.get_json()['teamName']
+        team = Team.objects.get_or_404(teamName=teamName)
         if team.owner_user != user:  # only the owner can modify the team name
             return jsonify({'msg':"Unauthorized"}), 401
-        team.update(teamName=teamName)
+        team.update(teamName=new_teamName)
     except mongoengine.errors.NotUniqueError:
         return jsonify({'msg': "teamName need to be unique"}),409
     except Exception as e:
@@ -117,12 +119,12 @@ def update_team(teamId):
 
 
 # delete a team
-@team.route('/api/1.0.0/team/<teamId>', methods=['DELETE'])
+@team.route('/api/1.0.0/team/<teamName>', methods=['DELETE'])
 @jwt_required()
-def delete_team(teamId):
+def delete_team(teamName):
     """
     delete a team and its all studies
-    :input teamId: the UUID of a team that need to be deleted
+    :input teamName: the UUID of a team that need to be deleted
     :return: confirmation of deletion
     """
     """auth part"""
@@ -131,7 +133,7 @@ def delete_team(teamId):
 
     """request part"""
     try:
-        team = Team.objects.get_or_404(teamId=teamId)
+        team = Team.objects.get_or_404(teamName=teamName)
         if team.owner_user != user:  # only the owner can modify the team name
             return jsonify("Unauthorized"), 401
         team.delete()  # delete the team

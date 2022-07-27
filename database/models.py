@@ -2,11 +2,18 @@ import uuid
 
 from .db import db
 from mongoengine import StringField, ReferenceField, ListField \
-    , IntField, CASCADE, DictField, UUIDField, FloatField, EmailField
+    , IntField, CASCADE, DictField, UUIDField, FloatField, EmailField, ValidationError
 import mongoengine
 import json
 
 from flask_bcrypt import generate_password_hash, check_password_hash
+
+
+def _teamName_check(name):
+    special_characters = """"!@# 
+    $%^&*()-+?=,<>/"""
+    if any(c in special_characters for c in name):
+        raise ValidationError('teamName should not include special symbols')
 
 
 class Study_Participant(db.DynamicDocument):
@@ -60,29 +67,20 @@ class Study(db.Document):
                 "allocType": self.allocType}
         return json.dumps(data)
 
-    def to_json(self):
+    def to_json(self, *args):
         """
         customize to json to prevent showing Oid
         :return: json format
         """
         data = self.to_mongo()
+        for arg in args:
+            data.pop(str(arg))
         data.pop("_id")  # not show oid
+        data.pop("_cls")  # avoid showing cls
         data['owner_team'] = self.owner_team.teamName
         data['owner_user'] = self.owner_user.email
-        data.pop("_cls")  # avoid showing cls
+        data['member_users'] = [member.email for member in self.member_users]  # de-reference each user
         return json.dumps(data, default=str)
-
-    def to_json_simple_view(self):
-        """
-        customize to_json, return minimum info
-        """
-        show = {}
-        data = self.to_mongo()
-        show['studyId'] = data['studyId']
-        show['studyName'] = data['studyName']
-        show['owner_team'] = str(self.owner_team.teamId)
-        show['allocType'] = data['allocType']
-        return json.dumps(show)
 
     def privilege_modify_check(self, user) -> bool:
         """
@@ -93,6 +91,7 @@ class Study(db.Document):
     def get_member_users_email(self):
         show = [member.email for member in self.member_users]
         return show
+
 
 class Study_Block(db.EmbeddedDocument):
     # sequence within a block
@@ -120,6 +119,9 @@ class Study_SimpleRand(Study):
         data.pop('_cls')
         return json.dumps(data)
 
+    def to_json_simple_view(self):
+        return super(Study_SimpleRand, self).to_json('numberParticipant', 'studyGroupRatio', 'allocationSequence')
+
 
 # block randomization data
 class Study_BlockRand(Study):
@@ -145,6 +147,9 @@ class Study_BlockRand(Study):
         data.pop('_cls')
         return json.dumps(data)
 
+    def to_json_simple_view(self):
+        return super(Study_BlockRand, self).to_json('allocationSequence', 'numberParticipant', 'studyBlockSize')
+
 
 class Study_RandBlockRand(Study):
     numberParticipant = IntField(required=True, unique=False)
@@ -167,6 +172,9 @@ class Study_RandBlockRand(Study):
         data.pop('_cls')
         return json.dumps(data)
 
+    def to_json_simple_view(self):
+        return super(Study_RandBlockRand, self).to_json('numberParticipant', 'studyBlockSizes', 'allocationSequence')
+
 
 # dataframe columns and its level
 class Study_Covariables(db.DynamicDocument):
@@ -181,7 +189,8 @@ class Study_Minimization(Study):
     allocationSequence = DictField(default=None)
     # the imbalance scores for the minimization allocation
     groupScores = DictField(required=False, default=None)
-    #member_users = ListField(ReferenceField('User', unique=True))  # study member who can modify the study
+
+    # member_users = ListField(ReferenceField('User', unique=True))  # study member who can modify the study
 
     @staticmethod
     def participant_IndexToVar(covars, participant):
@@ -210,7 +219,7 @@ class Study_Minimization(Study):
         data = self.to_mongo()
         data["participants"] = self.get_participants()
         data['covars'] = self.covars.field_name
-        data.pop('_id')# prevent showing OID
+        data.pop('_id')  # prevent showing OID
         data['owner_user'] = self.owner_user.email
         data['owner_team'] = self.owner_team.teamName
         data['member_users'] = [member.email for member in self.member_users]  # de-reference each user
@@ -248,6 +257,19 @@ class Study_Minimization(Study):
         """check if the user can modify this study"""
         return user in self.member_users
 
+    def to_json_simple_view(self):
+        """default"""
+        exclude = ['covars']
+        if self.allocationSequence:
+            exclude.append("allocationSequence")
+        if self.groupScores:
+            exclude.append("groupScores")
+        if self.participants:
+            exclude.append("participants")
+        return super(Study_Minimization, self).to_json(*exclude)
+
+
+
 class Study_StratBlockRand(Study):
     numberParticipant = IntField(required=True, unique=False)
     covars = ReferenceField(Study_Covariables, required=True)
@@ -272,8 +294,8 @@ class Study_StratBlockRand(Study):
 
 
 class Team(db.Document):
-    teamId = UUIDField(binary=False, required=True)
-    teamName = StringField(required=False, unique=True)
+    # teamName = UUIDField(binary=False, required=True)
+    teamName = StringField(required=True, unique=True, validation=_teamName_check)
     # studies of the team
     studies = ListField(ReferenceField(Study, reverse_delete_rule=mongoengine.PULL, dbref=True))
     owner_user = ReferenceField('User')  # only one owner for a team
@@ -294,7 +316,7 @@ class Team(db.Document):
             studies.append({"studyId": str(study.studyId),
                             "allocType": str(study.allocType),
                             "owner_user": str(study.owner_user.email),
-                           "member_users": study.get_member_users_email()})
+                            "member_users": study.get_member_users_email()})
         return studies
 
     def to_json(self):
@@ -318,6 +340,7 @@ class User(db.Document):
     userId = StringField(binary=False, required=True, unique=True)
     teams = ListField(ReferenceField(Team, reverse_delete_rule=mongoengine.PULL), required=False, default=None)
     studies = ListField(ReferenceField(Study, reverse_delete_rule=mongoengine.PULL), required=False, default=None)
+
     def hash_password(self):
         self.password = generate_password_hash(self.password).decode('utf8')
 

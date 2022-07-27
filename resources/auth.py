@@ -67,13 +67,13 @@ def add_user_team():
     try:
         Data = request.get_json()
         userEmail = Data['email']
-        teamId = Data['teamId']
+        teamName = Data['teamName']
         memberUser = User.objects(email=userEmail).first()
-        team = Team.objects(teamId=teamId).first()
+        team = Team.objects(teamName=teamName).first()
         if memberUser is None:
             return jsonify({'msg': "Invalid user email"}), 404
         if team is None:
-            return jsonify({'msg': "Invalid teamId"}), 404
+            return jsonify({'msg': "Invalid teamName"}), 404
         if team.owner_user != user:
             return jsonify({'msg': "Unauthorized"}), 401
     except KeyError as KE:
@@ -101,13 +101,13 @@ def remove_user_team():
     try:
         Data = request.get_json()
         userEmail = Data['email']
-        teamId = Data['teamId']
+        teamName = Data['teamName']
         memberUser = User.objects(email=userEmail).first()
-        team = Team.objects(teamId=teamId).first()
+        team = Team.objects(teamName=teamName).first()
         if memberUser is None:
             return jsonify({'msg': "Invalid user email"}), 404
         if team is None:
-            return jsonify({'msg': "Invalid teamId"}), 404
+            return jsonify({'msg': "Invalid teamName"}), 404
         if team.owner_user != user:
             return jsonify({'msg': "Unauthorized"}), 401
     except KeyError as KE:
@@ -192,7 +192,7 @@ def remove_user_study():
         if memberUser is None:
             return jsonify({'msg': "Invalid user email"}), 404
         if study is None:
-            return jsonify({'msg': "Invalid teamId"}), 404
+            return jsonify({'msg': "Invalid teamName"}), 404
         if study.owner_user != user:
             return jsonify({'msg': "Unauthorized"}), 401
     except KeyError as KE:

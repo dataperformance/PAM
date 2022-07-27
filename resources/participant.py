@@ -47,22 +47,18 @@ def minimize_participant():
         member_users = study.member_users
         if user not in member_users:
             return jsonify({"msg":"Unauthorized"}), 401
-
-    except KeyError as KE:
-        return jsonify({"msg":"Input Key Error: {}".format(str(KE))}), 404
-    except Exception as e:
-        return jsonify({"msg":"Please valid study"}), 404
-
-    """Participant info section"""
-    try:
+        """Participant info section"""
         # get the information
         participantData = request.get_json()
         # participant covars
         participantCovarsIndex = participantData['covars']
         # participant PID
         PID = participantData['PID']
+
+    except KeyError as KE:
+        return jsonify({"msg":"Input Key Error: {}".format(str(KE))}), 404
     except Exception as e:
-        return jsonify({"msg":"please input participantCovarsIndex and PID"}),400
+        return jsonify({"msg":"Please valid study"}), 404
 
     """participantCovarsIndex validation"""
     # check if study covars name is equal to participant covars name
@@ -195,7 +191,7 @@ def delete_participant(studyId, PID):
 
 @participant.route('/api/1.0.0/study/addParticipant', methods=['POST'])
 @jwt_required()
-def add_participant():
+def add_participant_manually():
     """
     Manually add participant to the minimization study
     :param studyId: the id of the minimization study
