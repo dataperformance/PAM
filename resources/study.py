@@ -4,11 +4,11 @@ from database.models import Team, Study, Study_SimpleRand, \
     Study_StratBlockRand
 import uuid, json
 # import algorithms
-from Alloc_Algorithm._blockRand import block_randomization
-from Alloc_Algorithm._simpleRand import simple_rand
-from Alloc_Algorithm._blockRand import randomized_block_randomization
-from Alloc_Algorithm._stratBlockRand import strat_blcok_randomization
-from Alloc_Algorithm import Trial, Participant
+from alloc_algorithms.blockRand import block_randomization
+from alloc_algorithms.simpleRand import simple_rand
+from alloc_algorithms.blockRand import randomized_block_randomization
+from alloc_algorithms.stratBlockRand import strat_blcok_randomization
+from alloc_algorithms import Trial, Participant
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 study = Blueprint('study', __name__)

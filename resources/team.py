@@ -1,6 +1,5 @@
 import json
 import mongoengine.errors
-import pymongo.errors
 from flask import Blueprint, Response, request, jsonify
 from database.models import Team, User
 import uuid
@@ -29,17 +28,20 @@ def get_team(teamName):
     userId = get_jwt_identity()  # the user uuid
     user = User.objects.get_or_404(userId=userId)  # find the user obj
     teams = user.teams
+
     """request part"""
     if teamName:
+        if not teams: # no team for the user
+            return jsonify({'msg': 'the user has no team'})
         try:
             team = Team.objects(teamName=teamName).get_or_404()  # get a team that add by the user
+
             if team not in teams:
-                return jsonify("Unauthorized"), 401
+                return jsonify({'msg': "Unauthorized"}), 401
             return Response(team.to_json(), mimetype="application/json", status=200)
         except Exception as e:
-            return jsonify("Invalid teamName"), 404
+            return jsonify(str(e)), 404
 
-    # Team.objects(add_by_user=user).all()  # get all the teams that added by the user
     allteams = [] if not teams else [json.loads(team.to_json()) for team in teams]
     view = {'allteams': allteams}
     return jsonify(view), 200
@@ -81,7 +83,7 @@ def create_team():
     $%^&*()-+?=,<>/"""})
 
     except mongoengine.errors.NotUniqueError as e:
-        return jsonify({'msg':"teamName need to be unique"}),400
+        return jsonify({'msg': "teamName need to be unique"}), 400
     # add team to the user
 
     User.objects(userId=userId).update_one(push__teams=team_created)
@@ -108,14 +110,14 @@ def update_team(teamName):
         new_teamName = request.get_json()['teamName']
         team = Team.objects.get_or_404(teamName=teamName)
         if team.owner_user != user:  # only the owner can modify the team name
-            return jsonify({'msg':"Unauthorized"}), 401
+            return jsonify({'msg': "Unauthorized"}), 401
         team.update(teamName=new_teamName)
     except mongoengine.errors.NotUniqueError:
-        return jsonify({'msg': "teamName need to be unique"}),409
+        return jsonify({'msg': "teamName need to be unique"}), 409
     except Exception as e:
-        return jsonify({'msg':"Invalid request"}), 404
+        return jsonify({'msg': "Invalid request"}), 404
 
-    return jsonify({'msg':"update success"}), 201
+    return jsonify({'msg': "update success"}), 201
 
 
 # delete a team

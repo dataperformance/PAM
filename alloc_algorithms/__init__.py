@@ -1,10 +1,10 @@
 import pandas as pd
-from ._simpleRand import simple_rand as SR
-from ._blockRand import block_randomization as BR, \
+from .simpleRand import simple_rand as SR
+from .blockRand import block_randomization as BR, \
     randomized_block_randomization as RBR
-from ._minimization import minimization as MZ, \
+from .minimization import minimization as MZ, \
     minimize as MINI
-from ._Stratify import stratify
+from .Stratify import stratify
 
 
 class Participant:

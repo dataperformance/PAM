@@ -1,13 +1,7 @@
 import mongoengine.errors
 from flask import Blueprint, Response, request, jsonify
-from database.db import initialize_db
 from database.models import Study_Minimization, Study_Participant, User
-import uuid
-# import algorithms
-from Alloc_Algorithm._blockRand import block_randomization
-from Alloc_Algorithm._simpleRand import simple_rand
-from Alloc_Algorithm._blockRand import randomized_block_randomization
-from Alloc_Algorithm import Trial, Participant
+from alloc_algorithms import Trial, Participant
 # auth
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
@@ -86,7 +80,6 @@ def minimize_participant():
     study.save()
 
     """allocate the participant"""
-    # participant_obj = Participant(ID=str(participantUUID), covars=studyCovars, covarIndex=participantCovarsIndex)
     participant_obj = Participant(ID=str(PID), covars=studyCovars,
                                   covarIndex=participantCovarsIndex)  # use PID instead of UUID
     trial_obj = Trial(Trial_name="test", group_name=studyGroupNames, covars=studyCovars
@@ -120,9 +113,6 @@ def minimize_participant():
     updatedGroupScores = trial_obj.getGroupScore()
     # append to the allocation sequence
 
-    # allocationSequence[str(allocatedGroup)].append(str(participantUUID))
-
-    # allocationSequence[str(allocatedGroup)].append(str(PID))  # use PID instead of UUID
     """find the allocation group and assign the participant to that group"""
     participant_created.allocation = str(allocatedGroup)
     participant_created.save()

@@ -1,5 +1,3 @@
-import uuid
-
 from .db import db
 from mongoengine import StringField, ReferenceField, ListField \
     , IntField, CASCADE, DictField, UUIDField, FloatField, EmailField, ValidationError
@@ -42,7 +40,7 @@ class Study_Participant(db.DynamicDocument):
 
 
 class Study(db.Document):
-    # each study requires a unique study Id from the user
+    """study abstract class"""
     studyId = UUIDField(binary=False, required=True)
     studyName = StringField(required=True, unique=False)
     studyGroupNames = ListField(StringField(), required=True)
@@ -120,6 +118,7 @@ class Study_SimpleRand(Study):
         return json.dumps(data)
 
     def to_json_simple_view(self):
+        """simple view for the study"""
         return super(Study_SimpleRand, self).to_json('numberParticipant', 'studyGroupRatio', 'allocationSequence')
 
 

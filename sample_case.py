@@ -1,6 +1,6 @@
-from Alloc_Algorithm import Trial as Trial
-from Alloc_Algorithm import Participant as Participant
-from Alloc_Algorithm import Strat_Trial as Strat_Trial
+from alloc_algorithms import Trial as Trial
+from alloc_algorithms import Participant as Participant
+from alloc_algorithms import Strat_Trial as Strat_Trial
 import random as rd
 import timeit
 import warnings
