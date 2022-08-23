@@ -1,5 +1,4 @@
 from flask import Flask, request, Response, jsonify
-
 from database.db import initialize_db
 from database.models import Team, Study, Study_SimpleRand, \
     Study_BlockRand, Study_Block, Study_Minimization, Study_Covariables, Study_Participant, Study_RandBlockRand, User
@@ -20,20 +19,24 @@ app.register_blueprint(participant)
 app.register_blueprint(auth)
 bcrypt = Bcrypt(app)
 
+# load config from env(deprecated)
+# app.config.from_object('config')
+from secret_manager import JWT_SECRET_KEY, MONGODB_SETTINGS
 
-# load config
-app.config.from_object('config')
-
+app.config["MONGODB_SETTINGS"] = MONGODB_SETTINGS
+app.config['JWT_SECRET_KEY'] = JWT_SECRET_KEY
 
 jwt = JWTManager(app)  # initialize JWTManager
 
+
 @jwt.expired_token_loader
-def my_expired_token_callback(*args,**kwargs):
+def my_expired_token_callback(*args, **kwargs):
     return jsonify({
         'msg': 'The user token is invalid'
     }), 401
 
 
+# JWT toke expiration date
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=1)
 
 initialize_db(app)
@@ -47,5 +50,3 @@ avaliable_allocTypes = {
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-print(app.config['MONGODB_SETTINGS'])
