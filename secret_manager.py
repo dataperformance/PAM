@@ -9,14 +9,18 @@ import os
 
 api_version_number = os.environ.get('API_VERSION_NUMBER')  # The version of current API
 project_id = os.environ.get('SECRET_PROJECT_ID')  # the project ID for the APP secrets
+secret_id_db_user_name = os.environ.get('MONGO_USERNAME')
+secret_id_db_user_password = os.environ.get('MONGO_PASSWORD')
+secret_id_jwt = os.environ.get('JWT_SECRET_KEY')
+database_connection = os.environ.get('DATABASE_CONNECTION')
 
 print(f"API Version: {api_version_number}, SECRET_PROJECT_ID is:{project_id}")
 
 # ID of the secret to create.
-secret_id_db_user_name = "PAM_MONGO_USERNAME"
-secret_id_db_user_password = "PAM_MONGO_PASSWORD"
-secret_id_jwt = "PAM_JWT_SECRET_KEY"
-database_connection = "PAM_DATABASE_CONNECTION"
+#secret_id_db_user_name = "PAM_MONGO_USERNAME"
+#secret_id_db_user_password = "PAM_MONGO_PASSWORD"
+#secret_id_jwt = "PAM_JWT_SECRET_KEY"
+#database_connection = "PAM_DATABASE_CONNECTION"
 
 # use the management tools to determine version at runtime, first version is 1
 version = 1

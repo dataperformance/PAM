@@ -5,9 +5,12 @@ runtime: python38
 service: pam-qa
 #the configuration for the app
 env_variables:
-  API_VERSION_NUMBER: '2'  #version of current api
-  SECRET_PROJECT_ID: 'centering-crow-362021'  #SECRET_PROJECT_ID
-
+  API_VERSION_NUMBER: '1'  #version of current api
+  SECRET_PROJECT_ID: 'lucky-reactor-359516'  #SECRET_PROJECT_ID
+  MONGO_USERNAME: 'QA_MONGO_USERNAME'   # qa mongo database username
+  MONGO_PASSWORD: 'QA_MONGO_PASSWORD'   # qa mongo database password
+  JWT_SECRET_KEY: 'PAM_JWT_SECRET_KEY'   #jwt key
+  DATABASE_CONNECTION: 'QA_PAM_DATABASE_CONNECTION' # qa mongo database connection string after @
 
 #network peering setting
 #vpc_access_connector:
