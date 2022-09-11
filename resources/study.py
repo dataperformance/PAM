@@ -24,7 +24,7 @@ available_allocTypes = {
 
 
 ###creating study by allocation type###
-@study.route('/api/1.0.0/team/study', methods=['POST'])
+@study.route('/team/study', methods=['POST'])
 @jwt_required()
 def create_study():
     """
@@ -214,7 +214,7 @@ def create_study():
     return Response(study_created.to_json(), mimetype="application/json", status=200)
 
 
-@study.route('/api/1.0.0/study/<studyId>', methods=['DELETE'])
+@study.route('/study/<studyId>', methods=['DELETE'])
 @jwt_required()
 def delete_study(studyId):
     """
@@ -248,7 +248,7 @@ def delete_study(studyId):
 
 
 ###retrive allocation or allocate a study###
-@study.route('/api/1.0.0/study/<studyId>', methods=['GET'])  # change to post
+@study.route('/study/<studyId>', methods=['GET'])  # change to post
 @jwt_required()
 def get_study(studyId):
     """
@@ -273,7 +273,7 @@ def get_study(studyId):
 
 
 # obsolete
-@study.route('/api/1.0.0/study/view/<studyId>', methods=['GET'])
+@study.route('/study/view/<studyId>', methods=['GET'])
 @jwt_required()
 def view_study_parameter(studyId):
     """
@@ -300,7 +300,7 @@ def view_study_parameter(studyId):
         return jsonify(str(e)), 404
 
 
-@study.route('/api/1.0.0/study/all', methods=['GET'])  # change to post
+@study.route('/study/all', methods=['GET'])  # change to post
 @jwt_required()
 def get_all_studies():
     """

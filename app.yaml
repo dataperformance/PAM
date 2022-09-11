@@ -1,1 +1,12 @@
+#runtime
 runtime: python38
+#the name of the service
+#Name should be either pam-qa or pam (qa or production)
+service: pam-qa
+
+
+
+#network peering setting
+#vpc_access_connector:
+#  name: projects/centering-crow-362021/locations/us-central1/connectors/pam-vpc-connector
+#  egress_setting: all-traffic

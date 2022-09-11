@@ -4,13 +4,17 @@
 from google.cloud import secretmanager
 import google_crc32c
 
-# GCP project in which to store secrets in Secret Manager.
-project_id = "lucky-reactor-359516"
+"""GCP project in which to store secrets in Secret Manager."""
+####
+project_id = "centering-crow-362021"
+####
+
 
 # ID of the secret to create.
 secret_id_db_user_name = "PAM_MONGO_USERNAME"
 secret_id_db_user_password = "PAM_MONGO_PASSWORD"
 secret_id_jwt = "PAM_JWT_SECRET_KEY"
+database_connection = "PAM_DATABASE_CONNECTION"
 
 # use the management tools to determine version at runtime, first version is 1
 version = 1
@@ -51,4 +55,5 @@ def access_secret_version(project_id, secret_id, version_id):
 USERNAME = access_secret_version(project_id, secret_id_db_user_name, version)
 PASSWORD = access_secret_version(project_id, secret_id_db_user_password, version)
 JWT_SECRET_KEY = access_secret_version(project_id, secret_id_jwt, version)
-MONGODB_SETTINGS = {"host": f"mongodb+srv://{USERNAME}:{PASSWORD}@pam.nhzb5tp.mongodb.net/PAM-Database?retryWrites=true&w=majority"}
+DATABASE = access_secret_version(project_id, database_connection, version)
+MONGODB_SETTINGS = {"host": f"mongodb+srv://{USERNAME}:{PASSWORD}@{DATABASE}"}

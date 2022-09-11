@@ -9,7 +9,7 @@ participant = Blueprint('participant', __name__)
 
 
 # only the team member can add the participant
-@participant.route('/api/1.0.0/study/minimizeParticipant', methods=['POST'])
+@participant.route('/study/minimizeParticipant', methods=['POST'])
 @jwt_required()
 def minimize_participant():
     """
@@ -125,7 +125,7 @@ def minimize_participant():
 
 
 # only the team member can delete the participant
-@participant.route('/api/1.0.0/study/<studyId>/deleteParticipant/<PID>', methods=['DELETE'])
+@participant.route('/study/<studyId>/deleteParticipant/<PID>', methods=['DELETE'])
 @jwt_required()
 def delete_participant(studyId, PID):
     """
@@ -179,7 +179,7 @@ def delete_participant(studyId, PID):
     return jsonify({"msg": "delete success"}, 202)
 
 
-@participant.route('/api/1.0.0/study/addParticipant', methods=['POST'])
+@participant.route('/study/addParticipant', methods=['POST'])
 @jwt_required()
 def add_participant_manually():
     """
