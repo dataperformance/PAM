@@ -1,2 +1,3 @@
-# SAM
-Study Allocation Manager
+# PAM
+Participant Allocation Manager
+ 
