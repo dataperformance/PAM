@@ -7,7 +7,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 auth = Blueprint('auth', __name__)
 
 
-@auth.route("/api/1.0.0/user/register", methods=["POST"])
+@auth.route("/user/register", methods=["POST"])
 def register():
     # store the json body request
     newUser = request.get_json()
@@ -34,7 +34,7 @@ def register():
         return jsonify({'msg': 'Username already exists'}), 409
 
 
-@auth.route("/api/1.0.0/user/login", methods=["POST"])
+@auth.route("/user/login", methods=["POST"])
 def login():
     login_details = request.get_json()  # store the json body request
     user = User.objects.get_or_404(email=login_details['email'])  # search for user in database
@@ -49,7 +49,7 @@ def login():
 
 
 # add a user to the team by input email
-@auth.route('/api/1.0.0/team/add/user', methods=['PATCH'])
+@auth.route('/team/add/user', methods=['PATCH'])
 @jwt_required()
 def add_user_team():
     """
@@ -90,7 +90,7 @@ def add_user_team():
 
 
 # remove a user from a team by input email
-@auth.route('/api/1.0.0/team/remove/user', methods=['PATCH'])
+@auth.route('/team/remove/user', methods=['PATCH'])
 @jwt_required()
 def remove_user_team():
     """auth part"""
@@ -125,7 +125,7 @@ def remove_user_team():
 
 
 # add a user to the minimization study by input email
-@auth.route('/api/1.0.0/study/add/user', methods=['PATCH'])
+@auth.route('/study/add/user', methods=['PATCH'])
 @jwt_required()
 def add_user_study():
     """
@@ -169,7 +169,7 @@ def add_user_study():
 
 
 # remove a user from a team by input email
-@auth.route('/api/1.0.0/study/remove/user', methods=['PATCH'])
+@auth.route('/study/remove/user', methods=['PATCH'])
 @jwt_required()
 def remove_user_study():
     """

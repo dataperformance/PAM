@@ -9,8 +9,8 @@ team = Blueprint('team', __name__)
 
 
 # get a team or teams
-@team.route('/api/1.0.0/team/', defaults={'teamName': None}, methods=['GET'])  # default teamName is none
-@team.route('/api/1.0.0/team/<teamName>', methods=['GET'])
+@team.route('/team/', defaults={'teamName': None}, methods=['GET'])  # default teamName is none
+@team.route('/team/<teamName>', methods=['GET'])
 @jwt_required()
 def get_team(teamName):
     """
@@ -48,7 +48,7 @@ def get_team(teamName):
 
 
 # create a team
-@team.route('/api/1.0.0/team', methods=['POST'])
+@team.route('/team', methods=['POST'])
 @jwt_required()  # required auth
 def create_team():
     """
@@ -94,7 +94,7 @@ def create_team():
 
 
 # update a team by teamName
-@team.route('/api/1.0.0/team/<teamName>', methods=['PATCH'])
+@team.route('/team/<teamName>', methods=['PATCH'])
 @jwt_required()
 def update_team(teamName):
     """
@@ -121,7 +121,7 @@ def update_team(teamName):
 
 
 # delete a team
-@team.route('/api/1.0.0/team/<teamName>', methods=['DELETE'])
+@team.route('/team/<teamName>', methods=['DELETE'])
 @jwt_required()
 def delete_team(teamName):
     """

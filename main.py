@@ -1,4 +1,4 @@
-from flask import Flask, request, Response, jsonify
+from flask import Flask, jsonify
 from database.db import initialize_db
 from database.models import Team, Study, Study_SimpleRand, \
     Study_BlockRand, Study_Block, Study_Minimization, Study_Covariables, Study_Participant, Study_RandBlockRand, User
@@ -11,16 +11,25 @@ from flask_bcrypt import Bcrypt
 # json token
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import datetime
+from flask import Blueprint
 
 app = Flask(__name__)
-app.register_blueprint(team)
-app.register_blueprint(study)
-app.register_blueprint(participant)
-app.register_blueprint(auth)
+
+# API version
+version_number = 1  # The version of current API
+version = Blueprint(
+    'version{}'.format(version_number),
+    __name__,
+    url_prefix='/api/v{}'.format(version_number)
+)
+version.register_blueprint(team)
+version.register_blueprint(study)
+version.register_blueprint(participant)
+version.register_blueprint(auth)
+app.register_blueprint(version)
+
 bcrypt = Bcrypt(app)
 
-# load config from env(deprecated)
-# app.config.from_object('config')
 from secret_manager import JWT_SECRET_KEY, MONGODB_SETTINGS
 
 app.config["MONGODB_SETTINGS"] = MONGODB_SETTINGS
