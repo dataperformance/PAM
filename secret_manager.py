@@ -3,12 +3,14 @@
 # Import the Secret Manager client library.
 from google.cloud import secretmanager
 import google_crc32c
+import os
 
-"""GCP project in which to store secrets in Secret Manager."""
-####
-project_id = "centering-crow-362021"
-####
+# get the API version and secret project ID
 
+api_version = os.environ.get('API_VERSION')  # The version of current API
+project_id = os.environ.get('SECRET_PROJECT_ID')  # the project ID for the APP secrets
+
+print(f"API Version: {api_version}, SECRET_PROJECT_ID is:{project_id}")
 
 # ID of the secret to create.
 secret_id_db_user_name = "PAM_MONGO_USERNAME"

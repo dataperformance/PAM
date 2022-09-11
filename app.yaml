@@ -3,7 +3,10 @@ runtime: python38
 #the name of the service
 #Name should be either pam-qa or pam (qa or production)
 service: pam-qa
-
+#the configuration for the app
+env_variables:
+  API_VERSION: '1'  #version of current api
+  SECRET_PROJECT_ID: 'centering-crow-362021'  #SECRET_PROJECT_ID
 
 
 #network peering setting

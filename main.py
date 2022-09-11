@@ -13,10 +13,14 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 import datetime
 from flask import Blueprint
 
+# get the ENV vars
+from secret_manager import JWT_SECRET_KEY, MONGODB_SETTINGS, api_version
+
+version_number = api_version
 app = Flask(__name__)
 
 # API version
-version_number = 1  # The version of current API
+
 version = Blueprint(
     'version{}'.format(version_number),
     __name__,
@@ -28,14 +32,11 @@ version.register_blueprint(participant)
 version.register_blueprint(auth)
 app.register_blueprint(version)
 
-bcrypt = Bcrypt(app)
-
-from secret_manager import JWT_SECRET_KEY, MONGODB_SETTINGS
-
 app.config["MONGODB_SETTINGS"] = MONGODB_SETTINGS
 app.config['JWT_SECRET_KEY'] = JWT_SECRET_KEY
 
 jwt = JWTManager(app)  # initialize JWTManager
+bcrypt = Bcrypt(app)
 
 
 @jwt.expired_token_loader
