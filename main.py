@@ -14,17 +14,17 @@ import datetime
 from flask import Blueprint
 
 # get the ENV vars
-from secret_manager import JWT_SECRET_KEY, MONGODB_SETTINGS, api_version
+from secret_manager import JWT_SECRET_KEY, MONGODB_SETTINGS, api_version_number
 
-version_number = api_version
+
 app = Flask(__name__)
 
 # API version
 
 version = Blueprint(
-    'version{}'.format(version_number),
+    'version{}'.format(api_version_number),
     __name__,
-    url_prefix='/api/v{}'.format(version_number)
+    url_prefix='/api/v{}'.format(api_version_number)
 )
 version.register_blueprint(team)
 version.register_blueprint(study)

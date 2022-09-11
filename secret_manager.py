@@ -7,10 +7,10 @@ import os
 
 # get the API version and secret project ID
 
-api_version = os.environ.get('API_VERSION')  # The version of current API
+api_version_number = os.environ.get('API_VERSION_NUMBER')  # The version of current API
 project_id = os.environ.get('SECRET_PROJECT_ID')  # the project ID for the APP secrets
 
-print(f"API Version: {api_version}, SECRET_PROJECT_ID is:{project_id}")
+print(f"API Version: {api_version_number}, SECRET_PROJECT_ID is:{project_id}")
 
 # ID of the secret to create.
 secret_id_db_user_name = "PAM_MONGO_USERNAME"
