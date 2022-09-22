@@ -1,11 +1,12 @@
 runtime: python38 #runtime environment
 
 #the name of the service
-service: pam-qa #Name should be either pam-qa or pam (qa or production)
+service: 'pam-qa' #pam-qa #Name should be either pam-qa or pam (qa or production) local for local test
 
 env_variables:
   #configuration for the app
   API_VERSION_NUMBER: '1'  #version of current api
+  JWT_ACCESS_TOKEN_EXPIRES: '1' #how many days for the jwt token to be expired
   SECRET_PROJECT_ID: 'lucky-reactor-359516'  #SECRET_PROJECT_ID
   DATABASE_NAME: 'qa-pam-database' #the mongo database name
 
@@ -32,9 +33,6 @@ env_variables:
   VERSION_AUTH_SOURCE: '1'
 
   ####secrets end####
-
-
-
 
 
 #network peering setting

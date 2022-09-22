@@ -1,4 +1,4 @@
-from alloc_algorithms.blockRand import block_randomization
+from .blockRand import block_randomization
 import itertools as it
 
 

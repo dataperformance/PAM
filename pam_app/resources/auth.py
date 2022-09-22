@@ -1,9 +1,9 @@
-from flask import Blueprint, Response, request, jsonify
-from database.models import User, Team, Study
+from flask import Blueprint, request, jsonify
+from pam_app.database.models import User, Team, Study
 import uuid
 import datetime
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+import json
 auth = Blueprint('auth', __name__)
 
 
@@ -206,3 +206,16 @@ def remove_user_study():
     # pull the team reference from the user obj
     memberUser.update(pull__studies=study)
     return jsonify({'msg': str(userEmail) + "has been removed from the team"}), 201
+
+
+@auth.app_errorhandler(Exception)
+def handle_exception(e):
+    """Return JSON instead of HTML for HTTP errors."""
+    # start with the correct headers and status code from the error
+    response = e
+    # replace the body with JSON
+    response.data = json.dumps({
+        "code": str(e)
+    })
+    response.content_type = "application/json"
+    return response

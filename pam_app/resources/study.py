@@ -1,14 +1,13 @@
 from flask import Blueprint, Response, request, jsonify
-from database.models import Team, Study, Study_SimpleRand, \
-    Study_BlockRand, Study_Block, Study_Minimization, Study_Covariables, Study_Participant, Study_RandBlockRand, User, \
+from pam_app.database.models import Team, Study, Study_SimpleRand, \
+    Study_BlockRand, Study_Minimization, Study_Covariables, Study_Participant, Study_RandBlockRand, User, \
     Study_StratBlockRand
 import uuid, json
 # import algorithms
-from alloc_algorithms.blockRand import block_randomization
-from alloc_algorithms.simpleRand import simple_rand
-from alloc_algorithms.blockRand import randomized_block_randomization
-from alloc_algorithms.stratBlockRand import strat_blcok_randomization
-from alloc_algorithms import Trial, Participant
+from pam_app.alloc_algorithms.blockRand import block_randomization
+from pam_app.alloc_algorithms.simpleRand import simple_rand
+from pam_app.alloc_algorithms.blockRand import randomized_block_randomization
+from pam_app.alloc_algorithms.stratBlockRand import strat_blcok_randomization
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 study = Blueprint('study', __name__)

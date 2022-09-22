@@ -32,7 +32,7 @@ def access_secret_version(project_id, secret_id, version_id):
 
 
 """Configurations"""
-api_version_number = os.environ.get('API_VERSION_NUMBER')  # The version of current API
+#api_version_number = os.environ.get('API_VERSION_NUMBER')  # The version of current API
 project_id = os.environ.get('SECRET_PROJECT_ID')  # the project ID for the APP secrets
 database_name = os.environ.get('DATABASE_NAME')  # get the database name
 
@@ -56,8 +56,7 @@ secret_id_authSource,ver_secret_id_authSource = os.environ.get('AUTH_SOURCE'),os
 JWT_SECRET_KEY = access_secret_version(project_id, secret_id_jwt, ver_secret_id_jwt)
 DATABASE = access_secret_version(project_id, secret_id_database_connection, ver_secret_id_database_connection)
 
-print(f"API Version: {api_version_number}"
-      f", SECRET_PROJECT_ID is:{project_id}"
+print(f", SECRET_PROJECT_ID is:{project_id}"
       f", DATABASE_CONNECTION is : {DATABASE}"
       f", authentication:{'X509' if secret_id_X509_certification else 'User ID & Password'}")
 

@@ -1,7 +1,7 @@
 import mongoengine.errors
 from flask import Blueprint, Response, request, jsonify
-from database.models import Study_Minimization, Study_Participant, User
-from alloc_algorithms import Trial, Participant
+from pam_app.database.models import Study_Minimization, Study_Participant, User
+from pam_app.alloc_algorithms import Trial, Participant
 # auth
 from flask_jwt_extended import jwt_required, get_jwt_identity
 

@@ -1,7 +1,7 @@
 import json
 import mongoengine.errors
 from flask import Blueprint, Response, request, jsonify
-from database.models import Team, User
+from pam_app.database.models import Team, User
 import uuid
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
