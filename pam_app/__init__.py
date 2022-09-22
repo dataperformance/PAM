@@ -4,6 +4,7 @@ from pam_app.resources.team import team
 from pam_app.resources.study import study
 from pam_app.resources.participant import participant
 from pam_app.resources.auth import auth
+from pam_app.resources.index import index
 from flask_jwt_extended import JWTManager
 from flask_bcrypt import Bcrypt
 import yaml
@@ -15,7 +16,7 @@ from config_module import Local,QA,Production
 
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder="templates")
 
     # check service
     with open("./app.yaml", "r") as stream:
@@ -50,6 +51,7 @@ def create_app():
     version.register_blueprint(participant)
     version.register_blueprint(auth)
     app.register_blueprint(version)
+    app.register_blueprint(index)
     initialize_db(app)
 
     jwt = JWTManager(app)  # initialize JWTManager
