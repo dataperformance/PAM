@@ -1,3 +1,4 @@
+"""init the app"""
 from flask import Flask, jsonify
 from flask import Blueprint
 from pam_app.resources.team import team
@@ -10,14 +11,11 @@ from flask_bcrypt import Bcrypt
 import yaml
 from pam_app.database.db import initialize_db
 import datetime
-from config_module import Local,QA,Production
-
-"""init the app"""
+from config_module import Local, QA, Production
 
 
 def create_app():
     app = Flask(__name__, template_folder="templates")
-
     # check service
     with open("./app.yaml", "r") as stream:
         try:
@@ -31,6 +29,8 @@ def create_app():
     api_version_number = app_config['env_variables']['API_VERSION_NUMBER']  # get the API version number
     jwt_access_token_expires_day = app_config['env_variables']['JWT_ACCESS_TOKEN_EXPIRES']
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(days=int(jwt_access_token_expires_day))
+
+    # check the service
     if service == "local":  # if run local
         app.config.from_object(Local)
     if service == "pam-qa":
@@ -39,22 +39,28 @@ def create_app():
     if service == "pam":
         pam_config = Production()
         app.config.from_object(pam_config)
+
     print(f'current version: V{str(api_version_number)}, service: {str(service)} ')
+
     # assign version number to the api
     version = Blueprint(
         'version{}'.format(api_version_number),
         __name__,
         url_prefix='/api/v{}'.format(api_version_number)
     )
+    # register blueprints
     version.register_blueprint(team)
     version.register_blueprint(study)
     version.register_blueprint(participant)
     version.register_blueprint(auth)
     app.register_blueprint(version)
     app.register_blueprint(index)
-    initialize_db(app)
 
-    jwt = JWTManager(app)  # initialize JWTManager
+
+    # init database
+    initialize_db(app)
+    # initialize JWTManager
+    jwt = JWTManager(app)
     bcrypt = Bcrypt(app)
 
     @jwt.expired_token_loader

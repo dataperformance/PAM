@@ -4,48 +4,53 @@ import uuid
 import datetime
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import json
+from exception import AuthError, UserValidationError
+from . import request_handler
+import error_handler
+
 auth = Blueprint('auth', __name__)
+# register error handler
+auth.register_blueprint(error_handler.error_bp)
 
 
 @auth.route("/user/register", methods=["POST"])
 def register():
     # store the json body request
-    newUser = request.get_json()
+    register_detail = request_handler(request, "email", "password")
 
-    try:
-        # hash the password
-        password = newUser['password']
-        email = newUser['email']
-    except Exception as e:
-        return jsonify({'msg': 'Invalid input'}), 409
+    email, password = register_detail['email'], register_detail['password']
 
-    # check if doc exists
-    doc = User.objects(email=email)
+    # check if account exists
+    account = User.objects(email=email)
 
-    if not doc:
+    if not account:
+        # create new account
         userId = str(uuid.uuid4())
         user_created = User(email=email, password=password, userId=userId)  # userId is the id in the db
         # hash the password
         user_created.hash_password()
         user_created.save()
 
-        return {'userId': userId}, 200
+        return jsonify({"msg": "create success", 'userId': userId}), 200
     else:
-        return jsonify({'msg': 'Username already exists'}), 409
+        raise AuthError("User already exists", status_code=409)
 
 
 @auth.route("/user/login", methods=["POST"])
 def login():
-    login_details = request.get_json()  # store the json body request
-    user = User.objects.get_or_404(email=login_details['email'])  # search for user in database
+    login_details = request_handler(request, "email", "password")
+    try:
+        user = User.objects.get_or_404(email=login_details['email'])  # search for user in database
+    except Exception as e:
+        raise AuthError("User not found", status_code=404)
     # check password
     authorized = user.check_password(login_details.get('password'))
     if not authorized:
-        return {'error': 'Email or password invalid'}, 401
+        raise AuthError("Invalid password", status_code=401)
     # 7 days for the token to expire
     expires = datetime.timedelta(days=7)
     access_token = create_access_token(identity=str(user.userId), expires_delta=expires)  #
-    return {'token': access_token}, 200
+    return jsonify({"msg": "login success", 'token': access_token}), 200
 
 
 # add a user to the team by input email
@@ -60,29 +65,33 @@ def add_user_team():
     """
     """auth part"""
     userId = get_jwt_identity()  # the user uuid
-    user = User.objects.get_or_404(userId=userId)  # find the user obj
+    try:
+        user = User.objects.get_or_404(userId=userId)  # find the user obj
+    except Exception as e:
+        raise UserValidationError()
 
     """request body"""
     # get the user according to the email
-    try:
-        Data = request.get_json()
-        userEmail = Data['email']
-        teamName = Data['teamName']
-        memberUser = User.objects(email=userEmail).first()
-        team = Team.objects(teamName=teamName).first()
-        if memberUser is None:
-            return jsonify({'msg': "Invalid user email"}), 404
-        if team is None:
-            return jsonify({'msg': "Invalid teamName"}), 404
-        if team.owner_user != user:
-            return jsonify({'msg': "Unauthorized"}), 401
-    except KeyError as KE:
-        return jsonify({'msg': "key Error: {}".format(str(KE))}), 404
+
+    Data = request_handler(request, 'email', 'teamName')
+    userEmail = Data['email']
+    teamName = Data['teamName']
+    memberUser = User.objects(email=userEmail).first()
+    team = Team.objects(teamName=teamName).first()
+    if memberUser is None:
+        # return jsonify({'msg': "Invalid user email"}), 404
+        raise UserValidationError('user not found in the database')
+    if team is None:
+        # return jsonify({'msg': "Invalid teamName"}), 404
+        raise AuthError("Team not found", status_code=404)
+    if team.owner_user != user:
+        raise AuthError("Unauthorized", status_code=403)
 
     # add the member to the team
     # push the team member only if the team member not in the team
     if memberUser.teams is not None and team in memberUser.teams:
-        return jsonify({'msg': "the member user is already in the team"}), 409
+        # return jsonify({'msg': "the member user is already in the team"}), 409
+        raise UserValidationError("the member user is already in the team", 409)
     team.update(add_to_set__member_users=memberUser)
     # update the user
     memberUser.update(add_to_set__teams=team)
@@ -206,16 +215,3 @@ def remove_user_study():
     # pull the team reference from the user obj
     memberUser.update(pull__studies=study)
     return jsonify({'msg': str(userEmail) + "has been removed from the team"}), 201
-
-
-@auth.app_errorhandler(Exception)
-def handle_exception(e):
-    """Return JSON instead of HTML for HTTP errors."""
-    # start with the correct headers and status code from the error
-    response = e
-    # replace the body with JSON
-    response.data = json.dumps({
-        "code": str(e)
-    })
-    response.content_type = "application/json"
-    return response
