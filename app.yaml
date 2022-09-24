@@ -1,7 +1,7 @@
 runtime: python38 #runtime environment
 
 #the name of the service
-service: 'local' #pam-qa #Name should be either pam-qa or pam (qa or production) local for local test
+service: 'pam-qa' #pam-qa #Name should be either pam-qa or pam (qa or production) local for local test
 
 env_variables:
   #configuration for the app

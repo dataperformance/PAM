@@ -4,9 +4,9 @@ import uuid
 import datetime
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import json
-from exception import AuthError, UserValidationError
+from .exception import AuthError, UserValidationError
 from . import request_handler
-import error_handler
+from . import error_handler
 
 auth = Blueprint('auth', __name__)
 # register error handler

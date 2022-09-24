@@ -1,5 +1,5 @@
-from flask import request, jsonify, Blueprint, abort, Response
-from exception import AuthError, InputError, UserValidationError
+from flask import jsonify, Blueprint, abort, Response
+from .exception import AuthError, InputError, UserValidationError
 
 error_bp = Blueprint('error_handler', __name__)
 

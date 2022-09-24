@@ -1,6 +1,6 @@
 # from error_handler import *
 from flask import abort
-from exception import InputError
+from .exception import InputError
 
 
 def request_handler(request_obj, *keys):

@@ -38,7 +38,7 @@ class UserValidationError(Exception):
     """error for user not found in db"""
     status_code = 404
 
-    def __init__(self, message="please login first",status_code=404):
+    def __init__(self, message="please login first", status_code=404):
         super().__init__()
         self.message = message
         self.status_code = status_code

@@ -1,0 +1,8 @@
+#this is the routing rules for PAM
+dispatch:
+    #qa service
+    - url: "pam-qa.davyin.tech/*"
+      service: pam-qa
+    #default service
+    - url: "davyin.tech/*"
+      service: default
