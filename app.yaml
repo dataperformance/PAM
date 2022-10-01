@@ -1,9 +1,38 @@
-#runtime
-runtime: python38
-#the name of the service
-#Name should be either pam-qa or pam (qa or production)
-service: pam-qa
+runtime: python38 #runtime environment
 
+#the name of the service
+service: 'pam-qa' #pam-qa #Name should be either pam-qa or pam (qa or production) local for local test
+
+env_variables:
+  #configuration for the app
+  API_VERSION_NUMBER: '1'  #version of current api
+  JWT_ACCESS_TOKEN_EXPIRES: '1' #how many days for the jwt token to be expired
+  SECRET_PROJECT_ID: 'lucky-reactor-359516'  #SECRET_PROJECT_ID
+  DATABASE_NAME: 'qa-pam-database' #the mongo database name
+
+  ####secrets Section####
+  JWT_SECRET_KEY: 'PAM_JWT_SECRET_KEY'   #jwt key
+  VERSION_JWT_SECRET_KEY: '1'
+
+  DATABASE_CONNECTION: 'QA_PAM_DATABASE_CONNECTION' # qa mongo database connection URI e.g. qa-cluster.0wnbk6p.mongodb.net
+  VERSION_DATABASE_CONNECTION: '1'
+
+
+  ## user id & password authentication  ##
+
+  MONGO_USERNAME: 'QA_PAM_MONGO_USERNAME'   # qa mongo database username
+  VERSION_MONGO_USERNAME: '1'
+
+  MONGO_PASSWORD: 'QA_PAM_MONGO_PASSWORD'   # qa mongo database password
+  VERSION_MONGO_PASSWORD: '1'
+
+  ## X509 certificate authentication (if blank, use userid password method, otherwise use X509) ##
+  X509_CERTIFICATION: 'QA_PAM_X509'  # if wish to use password authentication, please comment out this variable
+  VERSION_X509_CERTIFICATION: '2'
+  AUTH_SOURCE: 'QA_PAM_AUTH_SOURCE'
+  VERSION_AUTH_SOURCE: '1'
+
+  ####secrets end####
 
 
 #network peering setting
