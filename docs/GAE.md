@@ -1,8 +1,11 @@
-# Setup Google App Engine
+# Table of contents
 Follow the steps to deploy your GAE
+1. [Prerequisite](#p1)
 
 
-# Part1: Prerequisite
+
+
+# Part1: Prerequisite<a name="p1"></a>
 ## 1. Creating a project
 You will need to set up a project first. 
 > 1. Go to the [Manage resources page](https://console.cloud.google.com/cloud-resource-manager?walkthrough_id=resource-manager--create-project&_ga=2.219046815.768635686.1661177913-1193766713.1651689019)
@@ -38,7 +41,6 @@ Typically, projects are linked to a billing account at the time that you create 
 > ```gcloud components install app-engine-python```
 
 
-## 5. Set IAM
 
 
 
@@ -47,69 +49,55 @@ Typically, projects are linked to a billing account at the time that you create 
 Make sure you enable the **Secret Manager API** before proceeding.
 
 ## How to create secrets
-> 1. Go to [Secret Manager](https://console.cloud.google.com/security/secret-manager?_ga=2.55652141.768635686.1661177913-1193766713.1651689019)
+> 1. Go to [Secret Manager](https://console.cloud.google.com/security/secret-manager)
 > 2. Click on **Create secret**
-> - Under Name, enter your secret name
-> - Copy the **mongodb user name** and put it in the **Secret value**
+> - 1. Under **Name**, enter your secret name
+> - 2. Under **Secret value** Enter your secret value or upload a file
 > 3. Click the **Create secret** button to finish.
-> 4. Repeat the same process for:\
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-a. **mongodb user password Secret**\
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-b. **JWT Secret**\
-It will looks like:
+> 4. Create secrets for 
+>     - **PAM_JWT_SECRET_KEY**
+>     - **PAM_DATABASE_CONNECTION** (URI of your mongoDB)
+>     - **PAM_MONGO_USERNAME** and **PAM_MONGO_PASSWORD** (if using SCRAM authentication)
+>     - **PAM_X509_CERTIFICATION** and **PAM_AUTH_SOURCE** (if using X509 certificate authentication)
+> - Note: prefix of should indicate the type of deployment e.g. (`QA_`: QA branch, `PROD_`: production branch) \
+> It will looks like:\
 ![image 4](./GAE_resources/4.png)
+## How to access the secrets in PAM app
+### open app.yaml file in PAM and locate the **Secrets section**
+```yaml
+  ...
+  ...
+  ####secrets Section####
+  JWT_SECRET_KEY: <JWT_SECRET_KEY>   #jwt key
+  VERSION_JWT_SECRET_KEY: <Version of the VERSION_JWT_SECRET_KEY>
+
+  DATABASE_CONNECTION: <DATABASE_CONNECTION> 
+  # mongo database connection URI e.g. qa-cluster.0wnbk6p.mongodb.net
+  VERSION_DATABASE_CONNECTION: <Version of DATABASE_CONNECTION>
 
 
+  ## user id & password authentication  ##
 
+  MONGO_USERNAME: <MONGO_USERNAME>   # qa mongo database username
+  VERSION_MONGO_USERNAME: <Version of MONGO_USERNAME>
 
-## How to access the secrets (In Python app)
-```python 
-"""In ./PAM/secrete_manager file"""
-#define a function for retrieve secrete
-def access_secret_version(project_id, secret_id, version_id):
-    """
-    Access the payload for the given secret version if one exists. The version
-    can be a version number as a string (e.g. "5") or an alias (e.g. "latest").
-    """
+  MONGO_PASSWORD: <MONGO_PASSWORD>   # qa mongo database password
+  VERSION_MONGO_PASSWORD: <Version of MONGO_PASSWORD>
 
-    # Import the Secret Manager client library.
-    from google.cloud import secretmanager
+  ## X509 certificate authentication (if blank, use userid password method, otherwise use X509) ##
+  X509_CERTIFICATION: <PAM_X509>  # if wish to use password authentication, please comment out this line
+  VERSION_X509_CERTIFICATION: <Version of PAM_X509>
+  AUTH_SOURCE: <AUTH_SOURCE>
+  VERSION_AUTH_SOURCE: <Version of AUTH_SOURCE>
 
-    # Create the Secret Manager client.
-    client = secretmanager.SecretManagerServiceClient()
-
-    # Build the resource name of the secret version.
-    name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
-
-    # Access the secret version.
-    response = client.access_secret_version(request={"name": name})
-
-    # Verify payload checksum.
-    crc32c = google_crc32c.Checksum()
-    crc32c.update(response.payload.data)
-    if response.payload.data_crc32c != int(crc32c.hexdigest(), 16):
-        print("Data corruption detected.")
-        return response
-
-    # return the secrete
-    payload = response.payload.data.decode("UTF-8")
-    return payload
-
-# GCP project in which to store secrets in Secret Manager.
-project_id = "lucky-reactor-359516"
-# ID of the secret to create.
-#secret_id = "YOUR_SECRET_ID"
-secret_id_db_user_name = "PAM_MONGO_PASSWORD"
-secret_id_db_user_password = "PAM_MONGO_USERNAME"
-secret_id_jwt = "PAM_JWT_SECRET_KEY"
-# use the management tools to determine version at runtime, first version is 1
-version_id = 1
-
-#....
-
-
+  ####secrets end####
+  ...
+  ...
  ```
+ ### Note:
+  1. The default authentication method is **X509** (if both authentication methods info are presented in the file)
+  2. If using X.509 auth method, the secret manager must have a valid x.509 certificate, AUTH_SOURCE, and their corresponding version.
+  3. Each secret should have a corresponding version, the first version should be "1", you can find the version of your secrets in the secret manager console
 
 
 
@@ -118,24 +106,136 @@ version_id = 1
 
 
 
+<!-- 
+# Part 3: Configure VPC for Database connection(Static outbound IP addresses)
+
+[VPC basics](https://cloud.google.com/vpc/docs/vpc)
+> ## 1. Create VPC network
+> - Go to the [VPC networks page](https://console.cloud.google.com/networking/networks/list?project=project-777-346600) in the Google Cloud console.
+> - Click on **create VPC network**
+> - Enter a Name for the network.
+> - Choose **Automatic** for Subnet creation mode ![image VPC](./GAE_resources/vpc.png)
+> - click on create
+
+
+> ## 2. Create a subnetwork (subnet) inside your VPC network
+> - Open gcloud SDK
+> - Input 
+> ``` properties
+> gcloud compute networks subnets create SUBNET_NAME \
+>    --range=RANGE \
+>    --network=NETWORK_NAME \
+>    --region=REGION
+> ```
+>  > - SUBNET_NAME with a name you want to give to the subnet.
+>  > - RANGE with the IP range you want to assign to this subnet (e.g. 10.124.0.0/28)
+>  > - NETWORK_NAME with the name of your VPC network.
+>  > - REGION with the region of your App Engine service.\
+> It will looks like:![image subnet](./GAE_resources/subnetcreate.png)
+
+> ## 2. Create a Serverless VPC Access connector
+> To send requests to your VPC network and receive the corresponding responses without using the public internet, you must use a Serverless VPC Access connector.
+> - Ensure the Serverless VPC Access API is enabled for your project.[link](https://console.cloud.google.com/marketplace/details/google/vpcaccess.googleapis.com?project=centering-crow-362021)
+> - Go to [Serverless VPC access page](https://console.cloud.google.com/networking/connectors) to create a connector
+> - Click **Create connector**
+> - In the Name field, enter a name for your connector.
+> - In the Region field, select a region for your connector. This must match the region of your serverless service.
+> - In the Network field, select the VPC network to attach your connector to.
+> - Click the Subnetwork pulldown menu, and select the subnet we previously created.
+> - Click on **Create**
+> - screen shot![image connector](./GAE_resources/connector.png)
+
+
+>## 3. Configure your service to use a connector
+> After you have created a Serverless VPC Access connector, you must configure each service in your App Engine app that you want to connect to your VPC network.
+> 1. Add the **vpc_access_connector** field to your service's **app.yaml** file
+> ``` properties
+> vpc_access_connector:
+> name: projects/PROJECT_ID/locations/REGION/connectors/CONNECTOR_NAME
+> ```
+> Where **PROJECT_ID** is your Cloud project ID, **REGION** is the region your connector is in, and **CONNECTOR_NAME** is the name of your connector.\
+> e.g. 
+> ```properties
+> projects/centering-crow-362021/locations/us-central1/connectors/pam-vpc-connector
+> ```
 
 
 
 
+> ## 4. Create a new Cloud Router.
+> Cloud Router is a necessary control plane component for Cloud NAT.
+> ```properties
+> gcloud compute routers create ROUTER_NAME \
+>  --network=NETWORK_NAME \
+>  --region=REGION
+> ```
+>screen shot![image router](./GAE_resources/router.png)
+
+> ## 4. Reserve a static IP address.
+> This is the address that your service will use to send outgoing traffic. A reserved IP address resource retains the underlying IP address when the resource it is associated with is deleted and re-created. This IP address counts towards the static IP address quotas in your Google Cloud project.
+> ```
+> gcloud compute addresses create ORIGIN_IP_NAME \
+>  --region=REGION
+> ```
+> > - ORIGIN_IP_NAME with the name you want to assign to the IP address resource.
+> > - REGION with the region that will run the Cloud NAT router. Ideally the same region as your App Engine service to minimize latency and network costs.\
+> Screen shot:![image reip](./GAE_resources/reserveip.png)
+
+> Use the compute addresses describe command to view the result:
+> ```properties
+> gcloud compute addresses describe ORIGIN_IP_NAME
+> ```
+> ORIGIN_IP_NAME is the IP name you just assigned
+> Result IP:
+> ![image ip](./GAE_resources/staticip.png)
 
 
 
+> ## 5. Create a Cloud NAT gateway and specify your IP address.
+> Traffic originating from your subnet will go through this gateway and use the static IP address that you reserved in the previous step.
+> ```properties
+> gcloud compute routers nats create NAT_NAME \
+>   --router=pam-router \
+>   --region=us-central1 \
+>   --nat-custom-subnet-ip-ranges=pam-subnet \
+>   --nat-external-ip-pool=pam-static-ip
+>```
+>> - NAT_NAME with a name for the Cloud NAT gateway resource you want to create.
+>> - ROUTER_NAME with the name of your Cloud Router.
+>> - REGION with the region in which you want to create a NAT gateway.
+>> - ORIGIN_IP_NAME with the name of the reserved IP address resource you created in the previous step.
+
+> screen shot ![image nat](./GAE_resources/nat.png)
 
 
 
+## 6. Useful Resources
+> - [IP Address](https://console.cloud.google.com/networking/addresses)
+
+-->
 
 
 
+>
 # Part 3: Deployment (Single time)
-1. Make sure you have the git Installed
-2. app.yaml file in the PAM (if .yaml file is not named "app", then need to specify when run deployment)
-3. Local environment: windows
 
+1. Make sure you have the git Installed
+2. open app.yaml file in the PAM
+   ```yaml
+    runtime: python38 #runtime environment
+    service: <service name> #Name should only be default, pam-qa, or pam (qa or production)
+    env_variables:
+      #configuration for the app
+      API_VERSION_NUMBER: <API version number>  #version of current api
+      SECRET_PROJECT_ID: <project ID for the secret manager>  #SECRET_PROJECT_ID
+      DATABASE_NAME: <dbname> #the mongo database name
+      ...
+   ```
+  - service: [the type of service] i.e. qa, dev, production
+  - API_VERSION_NUMBER: [the version number of current API]
+  - DATABASE_NAME: [the database you want to access]
+## Note: 
+- ### The first service that's deployed to GAE must be called default, which means you need to deploy the default service each time you have a new GAE app.
 ## 1. Clone/Pull the repo
 > open the git bash, in the terminal clone the repo to local directory(or pull the newest version):\
 > ```git clone https://github.com/dataperformance/PAM.git```
@@ -145,7 +245,6 @@ version_id = 1
 > Useful information for managing the service:\
 > [Service Page](https://console.cloud.google.com/appengine/services?_ga=2.9325619.768635686.1661177913-1193766713.1651689019)\
 > [App settings](https://console.cloud.google.com/appengine/settings?_ga=2.215425169.768635686.1661177913-1193766713.1651689019)
-
 
 # Part 4: Deployment (continuous)
 
@@ -191,3 +290,38 @@ options:
 >1. Go to [trigger page](https://console.cloud.google.com/cloud-build/triggers?_ga=2.9390899.768635686.1661177913-1193766713.1651689019)
 >2. Click on **History**
 >3. You can find the build history there
+
+
+
+
+
+
+# Part 5: Customer Domain
+- prerequisite: own a domain
+- 
+## Step 1: verify your domain
+1. Click on the [**CUSTOM DOMAINS**](https://console.cloud.google.com/appengine/settings/domains) tab in the App Engine **Settings** section. 
+2. Click on the **ADD A CUSTOM DOMAIN**
+3. In the **Select the domain you want to use** section, choose the **Verify a new domain** option, type in the domain you want to use, and click on **VERIFY**. It will redirect you to the verification page(**Webmaster Central**).![image domainverify](./GAE_resources/domainverify.png)
+4. In the **Webmaster Central**:
+   1. Select your **domain registrar or provider**
+   2. copy the TXT/CNAME record, and add the record to your DNS configuration. ![image webver](./GAE_resources/webver.png)
+      - For example, in Hover
+      - 1. locate DNS and click on **ADD A RECORD**![hover](./GAE_resources/hover.png)
+      - 2. Copy and paste the record from **webmaster Central**
+   3. After adding the record to your domain DNS, click **VERIFY** to finish
+
+## Step 2: Map your subdomains
+1. After you finish the verification, you can go to next section **Point your domain to [projectID]**![map](./GAE_resources/mapdomain.png)
+2. You need to type in the subdomains for different deployment branches you want to map, for exmaple:
+   1. QA deployment: pam-qa.< your domin >
+   2. Dev deployment: pam-dev.< your domain >
+3. Click on **CONTINUE** when finished
+
+## Step 3: Update your DNS record
+1. After you finish the mapping, you can go to this section.
+2. Manually add all records to your domain DNS.
+3. Click on finish.
+
+## Note:
+  1. You may need to wait a few hours for the custom domain to be effective.
