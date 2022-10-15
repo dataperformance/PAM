@@ -2,7 +2,6 @@
 1. [Part 1: setup Mongo database](#p1)
    1. [Step 1: sign in Mongodb account](#p11)
    2. [Step 2: create a **Cluster**](#p12)
-   3. [Step 3: create and name a Database](#p13)
 
 
 2. [Part 2: setup database security](#p2)
@@ -18,37 +17,26 @@
 ## Step 1: sign in Mongodb account<a name="p11"></a>
 1. Go to page https://www.mongodb.com/
 2. Click on top right corner **Sign In**
-3. Sign In with your account
-   
+3. Sign In with your account.\
+![image login](./Mongodb_resources/login.png)
+note: You will need to sign up an account before signing in, you can choose sign up with your google account, github account or manually sign up.
+
+## Step 2: create a new project for PAM    
+1. Once you log in to your mongoDB console, you will need to set up an project for the PAM application
+2. locate the top left project selection menu and click on the **+ New Project**
+![image newproject](./Mongodb_resources/newproject.png)
+3. follow the instruction to name your project, add memebers and set permissions.
+4. Click on the **Create Project** to finish.
+
 
 ## Step 2: create a **Cluster**<a name="p12"></a>
 1. ### If no existing database in the account, click on **Build a Database**
    ![image 1](./Mongodb_resources/1.png)
 2. ### Choose the deployment option, choose **Shared** for free. 
-   ![image 2](./Mongodb_resources/2.png)
+   ![image 2](./Mongodb_resources/shared.png)
 3. ### Select the cloud provider, Region and define cluster Name, and click on **Create Cluster** to finish
    ![image 3](./Mongodb_resources/3.png)
-
-
-## Step 3: create and name a Database<a name="p13"></a>
-1. ### Click on the **Database** Tag, you will find the cluster you just created.
-   ![image 5](./Mongodb_resources/5.png)
-2. ### Click on the **Browse Collections**.
-   ![image 6](./Mongodb_resources/6.png)
-3. ### Click on **add My Own Data**.
-   ![image 7](./Mongodb_resources/7.png)
-4. ### Enter a Database name(collection name) and Collection name.
-   ![image 8](./Mongodb_resources/8.png)\
-
-   Database name: **[deployment_type]-pam-database**\
-   Collection name: **default-collection**\
-   Click on **Create** to finish.\
-   Note: [deployment_type] can only be "qa"(Quality Assurance),"dev"(development), and "prod"(production).
-
-
-
-
-
+4. ### You will be redirected to the **Security Quickstart** page.
 
 
 
@@ -58,13 +46,13 @@
 - Two available authentication methods **(username and password/X.509 Certificate)**
 1. locate to **Quickstart** under **SECURITY** section.
 2. choose the authentication you prefer. (X.509 for higher level security)
-> ### option 1: username and password
+> ### Option 1: username and password
 > 1. Click on **Username and Password** 
 >  ![image 4](./Mongodb_resources/4.png)
 > - Define your **username** and **password** for the database authentication.
 > - Click on **Create User** to finish
    
-> ### option 2: X.509 Certificate
+> ### Option 2: X.509 Certificate
 > 1. Click on **Certificate**
 > ![image cert](./Mongodb_resources/certificate_setup.png)
 > 
@@ -72,12 +60,12 @@
 > - Click on **Add user** to finish and download a certificate file (X508-cert-XXX.pem). The certificate file will be used later for the GCP deployment authentication.
 
 ## Step 2: setup IP access list<a name="p22"></a>
-1. locate to the **Network Access** under **SECURITY** section.
-2. Click on **ADD IP ADDRESS**
-3. Put **0.0.0.0/0** for the **Access List Entry** if allow Access From All IP Addresses, and add a comment(optional) 
-![image ip](./Mongodb_resources/IP_access.png)
+1. scroll down and select the **My Local Environment** under **Quickstart** section page.
+2. Put **0.0.0.0/0** for the **IP Address** if allow Access From All IP Addresses, and add a comment(optional) 
+2. Click on **ADD Entry** to add the record.
+![image network](./Mongodb_resources/network.png)
 
-
+## Click on the **Finish and Close** to finsh the security setup.
 
 # Part 3: connect PAM application to the database <a name="p3"></a>
 
@@ -98,23 +86,28 @@
    - Make sure you have the corresponding authentication method set up in [Part2](#p2)
    ![image connectstr](./Mongodb_resources/connectionstr.png)
 
-6. note the connection string
+6. Get the connection string.
+   - In this step, you need to note down the `<variable>` in the connection string that correspond to the authentication method you wish to use for connecting the database.
    > ### For **Password(SCRAM)** authentication method:
    >  - Connection string will be in the format:
    > ```description
    > mongodb+srv://<username>:<password>@<URI>/<dbname>?retryWrites=true&w=majority
    > ```
+   > 1.  `<username>` is the user name for this connection, you shuld have create one from the previous steps.
+   > 2. `<password>` is the password correspond to this user.
+   > 3. `<URI>` is the uinque identifier for this database, which you should get it from the connection string.
+   > 4. `<dbname>` is the database name you wish to use for this connection, which in default is empty, but if you want to customize a name for the database you want to create or specify a database you want to connect, you should define it.
 
    > ### For **X.509** authentication method:
    >  - Connection string will be in the format:
    > ```description
    > mongodb+srv://<URI>/<dbname>?authSource=<authSource>&authMechanism=MONGODB-X509retryWrites=true&w=majority
    > ```
+   > 1.  `<URI>` is the uinque identifier for this database, which you should get it from the connection string.
+   > 2. `<dbname>` is the database name you wish to use for this connection, which in default is empty, but if you want to customize a name for the database you want to create or specify a database you want to connect, you should define it.
+   >3. `<authSource>` is the database name associated with the user's credentials.
 
    Note: 
-   1. plase note down the **URI**, **authSource**(if using X.509).
-   2. The default `<dbname>` is blank in the connection string.
-   3. The `dbname` will be used for selecting the database within a mongo cluster.
 
 
 
