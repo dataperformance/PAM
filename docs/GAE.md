@@ -46,7 +46,6 @@ Typically, projects are linked to a billing account at the time that you create 
 
 
 # Part 2: Configure Secret
-Make sure you enable the **Secret Manager API** before proceeding.
 
 ## How to create secrets
 > 1. Go to [gcloud console](https://console.cloud.google.com/)
@@ -73,11 +72,11 @@ Make sure you enable the **Secret Manager API** before proceeding.
 > It will looks like:\
 ![image 4](./GAE_resources/4.png)
 ## How to access the secrets in PAM app
-### open app.yaml file in PAM and locate the **Secrets section**
+ 1. open app.yaml file in PAM and locate the **Secrets section**, locate the portion of the codes that start from **#secret section#**, it will look similar to the code down below:
 ```yaml
   ...
   ...
-  ####secrets Section####
+  ####secret section####
   JWT_SECRET_KEY: <JWT_SECRET_KEY>   #jwt key
   VERSION_JWT_SECRET_KEY: <Version of the VERSION_JWT_SECRET_KEY>
 
@@ -100,14 +99,16 @@ Make sure you enable the **Secret Manager API** before proceeding.
   AUTH_SOURCE: <AUTH_SOURCE>
   VERSION_AUTH_SOURCE: <Version of AUTH_SOURCE>
 
-  ####secrets end####
+  ####secret end####
   ...
   ...
  ```
+ 2. Change the `<variable>`and `<version of variable>`in the file to the secret name and its version which you have created in the gcloud secret manager. 
+ 3. Comment out any authentication method you are not using.
 
 
 
- 
+
  ### Note:
   1. The default authentication method is **X509** (if both authentication methods info are presented in the file)
   2. If using X.509 auth method, the secret manager must have a valid x.509 certificate, AUTH_SOURCE, and their corresponding version.
