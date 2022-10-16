@@ -22,11 +22,11 @@ Typically, projects are linked to a billing account at the time that you create 
 >Go to the [Verify the billing status page](https://cloud.google.com/billing/docs/how-to/verify-billing-enabled) and follow the steps to check your billing status
 
 ## 3. Enable APIs
-> 1. Go to [enable Cloud Build API](https://console.cloud.google.com/flows/enableapi?apiid=cloudbuild.googleapis.com&_ga=2.117968143.768635686.1661177913-1193766713.1651689019) page, click on **Next**, then click on **ENABLE**
-> 2. Go to [enable Secret Manager API](https://console.cloud.google.com/flows/enableapi?apiid=secretmanager.googleapis.com&redirect=https://console.cloud.google.com&_ga=2.10889010.768635686.1661177913-1193766713.1651689019) page, click on **Next**, then click on **ENABLE**
+> 1. Go to [enable Cloud Build API](https://console.cloud.google.com/flows/enableapi?apiid=cloudbuild.googleapis.com&_ga=2.117968143.768635686.1661177913-1193766713.1651689019) page, make sure you select the correct project, and click on **Next**, then click on **ENABLE**.
+> 2. Go to [enable Secret Manager API](https://console.cloud.google.com/flows/enableapi?apiid=secretmanager.googleapis.com&redirect=https://console.cloud.google.com&_ga=2.10889010.768635686.1661177913-1193766713.1651689019) page, click on **Next**, make sure you select the correct project, then click on **ENABLE**.
 
 ## 4. Install and initialize the gcloud CLI
-> 1. Download [Google Cloud CLI installer](https://dl.google.com/dl/cloudsdk/channels/rapid/GoogleCloudSDKInstaller.exe), and finish the installation steps.
+> 1. Go to [Google Cloud CLI installer page](https://cloud.google.com/sdk/docs/install), download the installer that correspond to your OS, and finish the installation steps.
 > 2. Open the Google Cloud SDK shell and input:\
 >   ``` gcloud init ```
 > 3. The terminal will automatically open a page in the browser for you to log in your google cloud account. Click on **Allow** to grant permissions to access google cloud resources.
@@ -49,17 +49,27 @@ Typically, projects are linked to a billing account at the time that you create 
 Make sure you enable the **Secret Manager API** before proceeding.
 
 ## How to create secrets
-> 1. Go to [Secret Manager](https://console.cloud.google.com/security/secret-manager)
-> 2. Click on **Create secret**
+> 1. Go to [gcloud console](https://console.cloud.google.com/)
+> 2. Locate the search bar, and type in "**secret manager**"
+> ![image secret](./GAE_resources/secretM.png)
+> 3. Click on the *Secret Manager*
+> 4. In the Secret Manager API page, click on **ENABLE** to enable API.
+> ![image enableAPI](./GAE_resources/enableAPI.png)
+> 5. After successfully enable API, you will be redirect to the Secret Manager page.
+> ![image secretManager](./GAE_resources/secretManager.png)
+> 6. Click on **CREATE SECRET**
+> ![image addSecret](./GAE_resources/addSecret.png)
 > - 1. Under **Name**, enter your secret name
 > - 2. Under **Secret value** Enter your secret value or upload a file
 > 3. Click the **Create secret** button to finish.
 > 4. Create secrets for 
->     - **PAM_JWT_SECRET_KEY**
->     - **PAM_DATABASE_CONNECTION** (URI of your mongoDB)
->     - **PAM_MONGO_USERNAME** and **PAM_MONGO_PASSWORD** (if using SCRAM authentication)
->     - **PAM_X509_CERTIFICATION** and **PAM_AUTH_SOURCE** (if using X509 certificate authentication)
-> - Note: prefix of should indicate the type of deployment e.g. (`QA_`: QA branch, `PROD_`: production branch) \
+>     - **PAM_JWT_SECRET_KEY**(JWT secret value)
+>     - **PAM_DATABASE_CONNECTION** (`<URI>` of your mongoDB)
+> - *if using SCRAM authentication*
+>     - **PAM_MONGO_USERNAME**(`<username>`) and **PAM_MONGO_PASSWORD**(`<password>`) (if using SCRAM authentication)
+> - *if using X509 certificate authentication*
+>     - **PAM_X509_CERTIFICATION** (The `.pem` certificate you have downloaded from mongoDB) and **PAM_AUTH_SOURCE** (`<authSource>` from the mongoDB connection string)
+> - Note: prefix of secret name should indicate the type of deployment e.g. (`QA_`: QA branch, `PROD_`: production branch) \
 > It will looks like:\
 ![image 4](./GAE_resources/4.png)
 ## How to access the secrets in PAM app
@@ -94,6 +104,10 @@ Make sure you enable the **Secret Manager API** before proceeding.
   ...
   ...
  ```
+
+
+
+ 
  ### Note:
   1. The default authentication method is **X509** (if both authentication methods info are presented in the file)
   2. If using X.509 auth method, the secret manager must have a valid x.509 certificate, AUTH_SOURCE, and their corresponding version.
@@ -214,37 +228,36 @@ Make sure you enable the **Secret Manager API** before proceeding.
 
 -->
 
-
-
->
 # Part 3: Deployment (Single time)
+## 0. prerequisite
 
 1. Make sure you have the git Installed
-2. open app.yaml file in the PAM
+2. Open app.yaml file in the PAM, and set up the PAM application running environment.
    ```yaml
     runtime: python38 #runtime environment
-    service: <service name> #Name should only be default, pam-qa, or pam (qa or production)
+    service: <service_name> #Name should only be default, pam-qa, or pam (qa or production)
     env_variables:
       #configuration for the app
-      API_VERSION_NUMBER: <API version number>  #version of current api
-      SECRET_PROJECT_ID: <project ID for the secret manager>  #SECRET_PROJECT_ID
+      API_VERSION_NUMBER: <API_version_number>  #version of current api
+      SECRET_PROJECT_ID: <project_ID_for_the_secret_manager>  #SECRET_PROJECT_ID
       DATABASE_NAME: <dbname> #the mongo database name
       ...
    ```
-  - service: [the type of service] i.e. qa, dev, production
-  - API_VERSION_NUMBER: [the version number of current API]
-  - DATABASE_NAME: [the database you want to access]
+  - `<service_name>`: [the type of service] i.e. qa, dev, production
+  - `<API_version_number>`: [the version number of the deployment API, should be integer]
+  - `<dbname>`: [the database you want to access, which is the same database name that is mentioned in MongoDB document]
 ## Note: 
-- ### The first service that's deployed to GAE must be called default, which means you need to deploy the default service each time you have a new GAE app.
+- ### The first service which is deployed on GAE must be called default, which means you need to deploy the default service before deploy any other services.
 ## 1. Clone/Pull the repo
 > open the git bash, in the terminal clone the repo to local directory(or pull the newest version):\
 > ```git clone https://github.com/dataperformance/PAM.git```
 ## 2. Deploy
 > In the same directory, run command``` gcloud app deploy```
 > ![image 5](./GAE_resources/5.png)
-> Useful information for managing the service:\
-> [Service Page](https://console.cloud.google.com/appengine/services?_ga=2.9325619.768635686.1661177913-1193766713.1651689019)\
-> [App settings](https://console.cloud.google.com/appengine/settings?_ga=2.215425169.768635686.1661177913-1193766713.1651689019)
+
+Useful information for managing the service:
+> 1. You can find the [Service Page](https://console.cloud.google.com/appengine/services?_ga=2.9325619.768635686.1661177913-1193766713.1651689019) by type in *services* in the search box in cloud console, and find App Engine service.
+> 2. You can find the [App settings](https://console.cloud.google.com/appengine/settings?_ga=2.215425169.768635686.1661177913-1193766713.1651689019) by search *application settings* in cloud console and find the App engine's setting.
 
 # Part 4: Deployment (continuous)
 
@@ -298,7 +311,8 @@ options:
 
 # Part 5: Customer Domain
 - prerequisite: own a domain
-- 
+
+
 ## Step 1: verify your domain
 1. Click on the [**CUSTOM DOMAINS**](https://console.cloud.google.com/appengine/settings/domains) tab in the App Engine **Settings** section. 
 2. Click on the **ADD A CUSTOM DOMAIN**
