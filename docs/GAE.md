@@ -57,7 +57,7 @@ Typically, projects are linked to a billing account at the time that you create 
 > 5. After successfully enable API, you will be redirect to the Secret Manager page.
 > ![image secretManager](./GAE_resources/secretManager.png)
 > 6. Click on **CREATE SECRET**
-> ![image addSecret](./GAE_resources/addSecret.png)
+> ![image addSecret](./GAE_resources/addsecret.png)
 > - 1. Under **Name**, enter your secret name
 > - 2. Under **Secret value** Enter your secret value or upload a file
 > 3. Click the **Create secret** button to finish.
