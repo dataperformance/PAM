@@ -1,31 +1,30 @@
 # Table of contents
-1. [Part 1: setup Mongo database](#p1)
-   1. [Step 1: sign in Mongodb account](#p11)
-   2. [Step 2: create a **Cluster**](#p12)
+1. [Part 1: Setup Mongo database](#p1)
+   1. [Step 1: Sign in Mongodb account](#p11)
+   2. [Step 2: Create a **Cluster**](#p12)
 
 
 2. [Part 2: setup database security](#p2)
-   1. [Step 1: setup authentication security](#p21)
-   2. [Step 2: setup IP Access List.](#p22)
-3. [Part 3: connect PAM application to the database](#p3)
-   1. [step 1: get the connection string](#31)
+   1. [Step 1: Setup authentication security](#p21)
+   2. [Step 2: Setup IP Access List.](#p22)
+3. [Part 3: Connect PAM application to the database](#p3)
+   1. [step 1: Get the connection string](#31)
 
 
 
 # Part 1: setup Mongo database <a name="p1"></a>
 
 ## Step 1: sign in Mongodb account<a name="p11"></a>
-1. Go to page https://www.mongodb.com/
-2. Click on top right corner **Sign In**
+1. Go to page https://www.mongodb.com/Click on the top right corner **Sign In**
 3. Sign In with your account.\
 ![image login](./Mongodb_resources/login.png)
-note: You will need to sign up an account before signing in, you can choose sign up with your google account, github account or manually sign up.
+note: You will need to sign up for an account before signing in, you can choose to sign up with your Google account, GitHub account or manually sign up.
 
 ## Step 2: create a new project for PAM    
-1. Once you log in to your mongoDB console, you will need to set up an project for the PAM application
+1. Once you log in to your MongoDB console, you will need to set up a project for the PAM application
 2. locate the top left project selection menu and click on the **+ New Project**
 ![image newproject](./Mongodb_resources/newproject.png)
-3. follow the instruction to name your project, add memebers and set permissions.
+3. follow the instruction to name your project, add members and set permissions.
 4. Click on the **Create Project** to finish.
 
 
@@ -87,7 +86,7 @@ note: You will need to sign up an account before signing in, you can choose sign
    ![image connectstr](./Mongodb_resources/connectionstr.png)
 
 6. Get the connection string.
-   - In this step, you need to note down the `<variable>` in the connection string that correspond to the authentication method you wish to use for connecting the database.
+   - In this step, you need to note down the `<variable>` in the connection string that corresponds to the authentication method you wish to use for connecting the database.
    > ### For **Password(SCRAM)** authentication method:
    >  - Connection string will be in the format:
    > ```description

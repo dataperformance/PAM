@@ -257,7 +257,7 @@ Typically, projects are linked to a billing account at the time that you create 
 > ![image 5](./GAE_resources/5.png)
 
 Useful information for managing the service:
-> 1. You can find the [Service Page](https://console.cloud.google.com/appengine/services?_ga=2.9325619.768635686.1661177913-1193766713.1651689019) by type in *services* in the search box in cloud console, and find App Engine service.
+> 1. You can find the [Service Page](https://console.cloud.google.com/appengine/services?_ga=2.9325619.768635686.1661177913-1193766713.1651689019) by typing in *services* in the search box in cloud console, and find App Engine service.
 > 2. You can find the [App settings](https://console.cloud.google.com/appengine/settings?_ga=2.215425169.768635686.1661177913-1193766713.1651689019) by search *application settings* in cloud console and find the App engine's setting.
 
 # Part 4: Deployment (continuous)
