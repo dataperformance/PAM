@@ -42,8 +42,8 @@ def get_team(teamName):
         except Exception as e:
             return jsonify(str(e)), 404
 
-    allteams = [] if not teams else [json.loads(team.to_json()) for team in teams]
-    view = {'allteams': allteams}
+    all_teams = [] if not teams else [json.loads(team.to_json()) for team in teams]
+    view = {'allTeams': all_teams}
     return jsonify(view), 200
 
 
